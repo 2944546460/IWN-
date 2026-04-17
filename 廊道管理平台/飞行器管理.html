@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CICORE IWN廊道运维管理平台 - 飞行器管理</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
+            height: 100%;
+            font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+            font-size: 14px;
+            color: #333;
+            background: #f0f2f5;
+            overflow: hidden;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+
+        /* ========== 顶部导航 ========== */
+        .top-header {
+            height: 64px;
+            background: var(--header-bg, #004b9e);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+            z-index: 100;
+            padding: 0 24px;
+            box-sizing: border-box;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .logo-box { height: 100%; display: flex; align-items: center; flex-shrink: 0; gap: 16px; }
+        .logo-box .brand { font-weight: 900; font-size: 20px; font-style: italic; color: #fff; letter-spacing: 1px; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        .logo-box .collapse-btn { font-size: 20px; cursor: pointer; color: rgba(255, 255, 255, 0.85); transition: color 0.2s; }
+        .logo-box .collapse-btn:hover { color: #fff; }
+
+        .top-nav { display: flex; height: 100%; flex: 1; align-items: center; margin-left: 32px; gap: 8px; }
+        .top-nav-item { color: rgba(255, 255, 255, 0.7); padding: 8px 16px; display: flex; align-items: center; cursor: pointer; font-size: 14px; font-weight: 500; transition: all .25s; border-radius: 6px; gap: 8px; text-decoration: none; }
+        .top-nav-item i { font-size: 18px; }
+        .top-nav-item:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+        .top-nav-item.active { color: #fff; background: rgba(255, 255, 255, 0.2); }
+
+        .user-box { display: flex; align-items: center; gap: 20px; font-size: 14px; color: rgba(255, 255, 255, 1); }
+        .user-box .dots { font-size: 18px; cursor: pointer; opacity: 0.85; transition: opacity 0.2s; }
+        .user-box .dots:hover { opacity: 1; }
+        .avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .8); display: flex; align-items: center; justify-content: center; font-size: 14px; gap: 6px; }
+
+        /* Main Body Split */
+        .main-body { flex: 1; display: flex; overflow: hidden; }
+        
+        /* Sidebar */
+        .sidebar { width: 200px; background: #0c1a2e; border-right: 1px solid rgba(255,255,255,.05); padding: 16px 0; display: flex; flex-direction: column; overflow-y: auto; }
+        .menu-logo { color: rgba(255,255,255,.9); padding: 0 20px; margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; font-size: 15px; }
+        .menu-item { padding: 14px 24px; padding-left: 28px; cursor: pointer; color: rgba(255,255,255,.65); transition: all 0.2s; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+        .menu-item:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .menu-item.active { background: rgba(24,144,255,0.15); color: #40a9ff; position: relative; }
+        .menu-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #1890ff; }
+        .menu-item i { font-size: 18px; width: 20px; text-align: center; }
+
+        /* Content Area */
+        .content-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+        
+        .card { background: #fff; border: 1px solid #e8e8e8; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .card-header { font-size: 16px; font-weight: 500; margin-bottom: 20px; color: #333; }
+
+        /* Data Grids */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .stat-item { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 6px; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; }
+        .stat-item span { color: #8c8c8c; font-size: 13px; }
+        .stat-item strong { color: #333; font-size: 24px; font-weight: 500; }
+
+        /* Chart Header layout */
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .chart-title { font-size: 15px; font-weight: 500; color: #333; }
+        .chart-filters { display: flex; gap: 1px; border-radius: 4px; overflow: hidden; }
+        .chart-filter-btn { background: #f5f5f5; border: none; color: #595959; padding: 4px 12px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .chart-filter-btn:hover { background: #e6f7ff; color: #1890ff; }
+        .chart-filter-btn.active { background: #1890ff; color: #fff; }
+
+        /* Search Form */
+        .search-form { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; margin-bottom: 16px; }
+        .form-group { display: flex; flex-direction: row; align-items: center; gap: 8px; flex: 1; min-width: 250px; }
+        .form-group label { color: #595959; font-size: 13px; white-space: nowrap; width: 70px; text-align: right; }
+        .custom-input, .custom-select { flex: 1; height: 32px; padding: 0 12px; border: 1px solid #d9d9d9; border-radius: 4px; background: #fff; color: #333; outline: none; transition: all 0.2s; font-family: inherit; font-size: 13px;}
+        .custom-input::placeholder { color: #bfbfbf; }
+        .custom-input:focus, .custom-select:focus { border-color: #1890ff; }
+        .custom-select { appearance: none; background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='rgba(0,0,0,0.4)' viewBox='0 0 24 24'%3E%3Cpath d='M12 15L6.5 9.5 7.91 8.09 12 12.17l4.09-4.08L17.5 9.5z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
+        
+        .form-actions { display: flex; gap: 12px; margin-left: auto; align-items: center; }
+        .btn { height: 32px; padding: 0 16px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; outline: none; font-size: 13px; transition: all 0.2s; color: #333; display: flex; align-items: center; gap: 4px; }
+        .btn-default { border-color: #d9d9d9; background: #fff; color: #595959; }
+        .btn-default:hover { border-color: #1890ff; color: #1890ff; }
+        .btn-primary { background: #1890ff; color: #fff; }
+        .btn-primary:hover { background: #40a9ff; }
+        .btn-text { background: transparent; border: none; color: #1890ff; padding: 0; }
+        .btn-text:hover { color: #40a9ff; }
+
+        /* Table */
+        .custom-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .custom-table th { background: #fafafa; padding: 12px 16px; font-weight: 500; color: #8c8c8c; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .custom-table td { padding: 12px 16px; border-bottom: 1px solid #f5f5f5; color: #333; font-size: 13px; }
+        
+        /* Pagination */
+        .pagination { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 16px; color: #8c8c8c; font-size: 13px; }
+        .page-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid #d9d9d9; border-radius: 4px; cursor: pointer; background: #fff; color: #595959; }
+        .page-btn:hover { border-color: #1890ff; color: #1890ff; }
+        .page-btn.active { background: #1890ff; border-color: #1890ff; color: #fff; }
+        .page-goto { width: 40px; height: 28px; text-align: center; }
+        .page-select { height: 28px; background: #fff; border: 1px solid #d9d9d9; color: #595959; border-radius: 4px; outline: none; }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- 统一提取的顶部导航组件 -->
+        <script src="assets/js/header.js"></script>
+
+        <!-- 主体 -->
+        <div class="main-body">
+            <!-- 侧边栏 -->
+            <div class="sidebar">
+                <div class="menu-logo">
+                    <i class="ri-flight-takeoff-line" style="font-size: 18px;"></i> 在飞飞行器管理
+                </div>
+                <div class="menu-item active">
+                    <i class="ri-radar-line"></i> 获取数据维护
+                </div>
+                <div class="menu-item">
+                    <i class="ri-history-line"></i> 历史数据管理
+                </div>
+                <div class="menu-item">
+                    <i class="ri-tools-line"></i> 飞行器维保管理
+                </div>
+            </div>
+
+            <!-- 右侧内容 -->
+            <div class="content-area">
+                <!-- 统计卡片 -->
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span>在飞飞行器总数</span>
+                        <strong>0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>当天已飞飞行器数量</span>
+                        <strong>0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>当天应飞飞行器数量</span>
+                        <strong>0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>在线异常飞行器数量</span>
+                        <strong>0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>当天异常飞行器数量</span>
+                        <strong>0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>当天任务完成率</span>
+                        <strong>0 %</strong>
+                    </div>
+                </div>
+
+                <!-- 趋势图表区 -->
+                <div class="card">
+                    <div class="chart-header">
+                        <div class="chart-title">飞行器状态趋势</div>
+                        <div class="chart-filters">
+                            <button class="chart-filter-btn active">今日</button>
+                            <button class="chart-filter-btn">近一周</button>
+                            <button class="chart-filter-btn">近一月</button>
+                        </div>
+                    </div>
+                    <div id="trend-chart" style="width: 100%; height: 280px;"></div>
+                </div>
+
+                <!-- 列表面板 -->
+                <div class="card" style="flex: 1; display:flex; flex-direction:column;">
+                    <div class="card-header" style="margin-bottom: 8px;">在线飞行器信息列表</div>
+                    
+                    <div class="search-form">
+                        <div class="form-group">
+                            <label>飞行器ID</label>
+                            <input type="text" class="custom-input" placeholder="请输入飞行器ID">
+                        </div>
+                        <div class="form-group">
+                            <label>飞行器型号</label>
+                            <select class="custom-select">
+                                <option value="">请选择飞行器型号</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>飞行器状态</label>
+                            <select class="custom-select">
+                                <option value="">请选择飞行器状态</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>业务类型</label>
+                            <select class="custom-select">
+                                <option value="">请选择业务类型</option>
+                            </select>
+                        </div>
+                        <div class="form-actions" style="margin-top: 8px; width: 100%; justify-content: flex-end;">
+                            <button class="btn btn-default">重置</button>
+                            <button class="btn btn-primary"><i class="ri-search-line"></i> 查询</button>
+                            <button class="btn btn-text">收起 <i class="ri-arrow-up-s-line"></i></button>
+                        </div>
+                    </div>
+
+                    <div style="flex: 1; min-height: 200px;">
+                        <table class="custom-table" style="margin-bottom: 24px;">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>飞行器ID</th>
+                                    <th>飞行器型号</th>
+                                    <th>生产厂家</th>
+                                    <th>剩余电量</th>
+                                    <th>业务类型</th>
+                                    <th>飞行器所在位置</th>
+                                    <th>飞行器投飞时间</th>
+                                    <th>飞行器状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                        </table>
+                        <div style="text-align:center; padding: 40px 0; color: #bfbfbf;">
+                            <i class="ri-folder-open-line" style="font-size: 42px; display: block; margin-bottom: 8px;"></i>
+                            <span>无数据</span>
+                        </div>
+                    </div>
+                    
+                    <div class="pagination">
+                        <span>共 0 个</span>
+                        <div class="page-btn"><i class="ri-arrow-left-s-line"></i></div>
+                        <div class="page-btn active">1</div>
+                        <div class="page-btn"><i class="ri-arrow-right-s-line"></i></div>
+                        <select class="page-select">
+                            <option>5 / 页</option>
+                        </select>
+                        <span style="margin-left: 8px;">跳至</span>
+                        <input type="text" class="custom-input page-goto" value="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Init Echarts Trend Chart
+        const chartDom = document.getElementById('trend-chart');
+        const myChart = echarts.init(chartDom);
+        const option = {
+            tooltip: { trigger: 'axis' },
+            legend: { 
+                data: ['正常飞行器', '异常飞行器'], 
+                bottom: 0, 
+                textStyle: { color: '#595959' }, 
+                icon: 'circle' 
+            },
+            grid: { left: '2%', right: '2%', bottom: '12%', top: '5%', containLabel: true },
+            xAxis: { 
+                type: 'category', 
+                boundaryGap: false, 
+                data: ['00:00','01:00','02:00','03:00','04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00'],
+                axisLabel: { color: '#8c8c8c', fontSize: 11 },
+                axisTick: { show: false },
+                axisLine: { lineStyle: { color: '#e8e8e8' } }
+            },
+            yAxis: { 
+                type: 'value', 
+                min: 0,
+                max: 3,
+                splitNumber: 6,
+                axisLabel: { color: '#8c8c8c', fontSize: 11 }, 
+                splitLine: { lineStyle: { color: '#f0f0f0' } } 
+            },
+            series: [
+                { 
+                  name: '正常飞行器', 
+                  type: 'line', 
+                  smooth: true, 
+                  symbol: 'circle',
+                  symbolSize: 6,
+                  lineStyle: { color: '#00d084', width: 2 }, 
+                  itemStyle: { color: '#00d084' },
+                  areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(0,208,132,0.4)'},{offset: 1, color: 'rgba(0,208,132,0.05)'}]) },
+                  data: [1,3,1,1,1,1,0,1,2,0,1,3,0,0,0,2,1,3,1,2,2,0,2,0] 
+                },
+                { 
+                  name: '异常飞行器', 
+                  type: 'line', 
+                  smooth: true, 
+                  symbol: 'circle',
+                  symbolSize: 6,
+                  lineStyle: { color: '#f56c6c', width: 2 }, 
+                  itemStyle: { color: '#f56c6c' },
+                  areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(245,108,108,0.4)'},{offset: 1, color: 'rgba(245,108,108,0.05)'}]) },
+                  data: [1,1,0,1,1,1,0,0,0,0,1,1,0,0,0,1,1,1,0,0,0,1,1,0] 
+                }
+            ]
+        };
+        myChart.setOption(option);
+        window.addEventListener('resize', () => myChart.resize());
+    </script>
+</body>
+</html>

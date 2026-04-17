@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CICORE IWN廊道运维管理平台 - 地面节点管理</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; font-size: 14px; color: #333; background: #f0f2f5; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+        button, input, select, textarea { font-family: inherit; }
+
+        .main-wrap { display: flex; flex: 1; overflow: hidden; }
+        
+        /* 侧边栏样式 */
+        .sidebar { width: 220px; background: #0e2246; display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; box-shadow: 2px 0 6px rgba(0,0,0,.1); }
+        .sidebar-list { flex: 1; }
+        .sidebar-item { height: 50px; display: flex; align-items: center; padding: 0 20px; color: rgba(255,255,255,.65); cursor: pointer; transition: all .2s; font-size: 14px; font-weight: 500; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.05); }
+        .sidebar-item:hover { color: #fff; background: rgba(255,255,255,.06); }
+        .sidebar-item.active { color: #fff; background: rgba(64,158,255,.15); border-left: 3px solid #409eff; }
+        .sidebar-item .ico { margin-right: 12px; font-size: 18px; }
+        
+        .content-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .page-body { flex: 1; padding: 16px; overflow: auto; display: flex; flex-direction: column; gap: 16px; }
+        
+        /* 卡片 */
+        .card { background: #fff; border-radius: 4px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.04); border: 1px solid #f0f0f0; }
+        
+        /* 统计卡片 (用于顶部展示) */
+        .stat-cards { display: flex; gap: 16px; flex-shrink: 0; }
+        .stat-card { flex: 1; background: #fff; border-radius: 4px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.04); border: 1px solid #f0f0f0; display: flex; flex-direction: column; gap: 12px; }
+        .stat-label { font-size: 14px; color: #606266; }
+        .stat-val { font-size: 32px; font-weight: 300; color: #333; }
+        
+        /* 表单搜索区 */
+        .search-area { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; margin-bottom: 24px; }
+        .form-group { display: flex; align-items: center; gap: 12px; }
+        .form-group label { font-size: 14px; color: #606266; white-space: nowrap; }
+        .form-group input, .form-group select { height: 32px; border: 1px solid #dcdfe6; border-radius: 4px; padding: 0 12px; font-size: 13px; width: 220px; outline: none; transition: border .2s; color: #606266; }
+        .form-group input:focus, .form-group select:focus { border-color: #1890ff; }
+        .form-group input::placeholder { color: #c0c4cc; }
+        
+        /* 图表筛选 Tab */
+        .filter-tabs { display: inline-flex; background: #f5f7fa; border-radius: 4px; padding: 2px; }
+        .filter-tabs .tab { padding: 6px 16px; font-size: 13px; color: #606266; cursor: pointer; border-radius: 3px; transition: all .2s; }
+        .filter-tabs .tab.active { background: #fff; color: #1890ff; box-shadow: 0 1px 3px rgba(0,0,0,.1); font-weight: 500; }
+
+        /* 按钮 */
+        .btn { height: 32px; padding: 0 16px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; color: #606266; cursor: pointer; font-size: 13px; transition: all .2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn:hover { border-color: #1890ff; color: #1890ff; }
+        .btn-primary { background: #004b9e; color: #fff; border-color: #004b9e; }
+        .btn-primary:hover { background: #005bc4; color: #fff; border-color: #005bc4; }
+        
+        .btn-text { background: transparent; border: none; padding: 0 4px; color: #1890ff; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap:4px; }
+        .btn-text:hover:not(:disabled) { color: #40a9ff; }
+        .btn-text:disabled { color: #c0c4cc; cursor: not-allowed; }
+        
+        .btn-outline-primary { border-color: #1890ff; color: #1890ff; }
+        .btn-outline-primary:hover { background: #ecf5ff; }
+        .btn-danger-light { border-color: #fbc4c4; color: #f56c6c; background: #fef0f0; }
+        .btn-danger-light:hover { background: #fde2e2; border-color: #f9a7a7; }
+
+        .toolbar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 16px; }
+
+        /* 表格样式 */
+        .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .tbl th { background: #f5f7fa; color: #606266; font-weight: 600; padding: 12px 16px; text-align: left; border-bottom: 1px solid #ebeef5; white-space: nowrap; }
+        .tbl td { padding: 12px 16px; border-bottom: 1px solid #ebeef5; color: #606266; }
+        .tbl tr:hover { background: #f5f7fa; }
+        .tbl th.center, .tbl td.center { text-align: center; }
+        
+        /* 分页器 */
+        .pagination { display: flex; justify-content: flex-end; align-items: center; margin-top: 24px; font-size: 13px; color: #606266; gap: 8px; }
+        .pg-btn { border: 1px solid #dcdfe6; background: #fff; min-width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 4px; cursor: pointer; padding: 0 4px; transition: all .2s; }
+        .pg-btn:hover { color: #1890ff; border-color: #1890ff; }
+        .pg-btn.active { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .pg-btn.disabled { opacity: 0.4; pointer-events: none; }
+        .pg-input { width: 44px; height: 28px; border: 1px solid #dcdfe6; border-radius: 4px; text-align: center; margin: 0 6px; outline: none; }
+        .pg-input:focus { border-color: #1890ff; }
+        
+        /* Swtich 控件 */
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; cursor: pointer; vertical-align: middle; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch .slider { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #dcdfe6; transition: .3s; border-radius: 20px; }
+        .switch .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+        .switch input:checked + .slider { background-color: #1890ff; }
+        .switch input:checked + .slider:before { transform: translateX(20px); }
+
+        /* 状态微标与进度条 */
+        .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .badge-normal { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
+        .badge-warning { background: #fdf6ec; color: #e6a23c; border: 1px solid #faecd8; }
+        .badge-critical { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+        
+        .progress-wrapper { display: flex; align-items: center; gap: 8px; }
+        .progress-box { flex: 1; min-width: 60px; height: 8px; border-radius: 4px; background: #ebeef5; overflow: hidden; }
+        .progress-bar { height: 100%; transition: width .3s, background .3s; border-radius: 4px; }
+        .progress-val { width: 36px; text-align: right; font-size: 12px; color: #606266; }
+
+        /* Toast */
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #fff; padding: 10px 20px; border-radius: 4px; z-index: 9999; animation: fade .3s; font-size: 14px; }
+        @keyframes fade { from { opacity: 0; transform: translate(-50%, -20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+        .hidden { display: none !important; }
+        .card-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 24px; display: block; position: relative; padding-left: 10px; }
+        .card-title::before { content: ""; position: absolute; left: 0; top: 2px; bottom: 2px; width: 4px; background: #1890ff; border-radius: 2px; }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- 统一提取的顶部导航组件 -->
+        <script src="assets/js/header.js"></script>
+
+        <div class="main-wrap">
+            <!-- 侧边栏 -->
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-list">
+                    <!-- PRD规定默认首页面为展示页面 -->
+                    <a class="sidebar-item active" id="menu-status" onclick="switchView('status')">
+                        <span class="ico"><i class="ri-flow-chart"></i></span>
+                        <span class="txt">节点状态展示</span>
+                    </a>
+                    <a class="sidebar-item" id="menu-manage" onclick="switchView('manage')">
+                        <span class="ico"><i class="ri-information-line"></i></span>
+                        <span class="txt">节点信息维护</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 内容区 -->
+            <div class="content-area">
+                
+                <!-- =============== 视图1: 节点状态展示 (默认展示) =============== -->
+                <div id="view-status" class="page-body">
+                    <div class="stat-cards">
+                        <div class="stat-card">
+                            <div class="stat-label">总节点数</div>
+                            <div class="stat-val" id="stat-s-total">14</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">在线节点数</div>
+                            <div class="stat-val" id="stat-s-online">12</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">异常节点数</div>
+                            <div class="stat-val" id="stat-s-abnormal" style="color: #606266;">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">平均响应时间</div>
+                            <div class="stat-val" id="stat-s-ping">0<span style="font-size:14px;color:#909399;margin-left:4px;">ms</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 节点状态趋势图 -->
+                    <div class="card" style="margin-bottom: 0px; flex-shrink: 0; padding-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <span class="card-title" style="margin-bottom: 0;">节点状态趋势图</span>
+                            <div class="filter-tabs" id="chart-tabs">
+                                <span class="tab active" onclick="switchChartTime('today', this)">今日</span>
+                                <span class="tab" onclick="switchChartTime('week', this)">近一周</span>
+                                <span class="tab" onclick="switchChartTime('month', this)">近一月</span>
+                            </div>
+                        </div>
+                        <div id="statusChart" style="height: 260px; width: 100%;"></div>
+                    </div>
+                    
+                    <div class="card" style="flex:1; display:flex; flex-direction:column;">
+                        <span class="card-title">节点信息列表</span>
+                        <div class="search-area" style="margin-bottom: 16px;">
+                            <div class="form-group">
+                                <label>节点名称</label>
+                                <input type="text" id="status-s-name" placeholder="支持模糊匹配" oninput="renderStatusTable()">
+                            </div>
+                            <div class="form-group" style="margin-left: 20px;">
+                                <label>节点状态</label>
+                                <select id="status-s-health" onchange="renderStatusTable()">
+                                    <option value="">全部</option>
+                                    <option value="正常">正常</option>
+                                    <option value="提示">提示</option>
+                                    <option value="警告">警告</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="flex:1; overflow:auto;">
+                            <table class="tbl">
+                                <thead>
+                                    <tr>
+                                        <th>序号</th>
+                                        <th>节点ID</th>
+                                        <th>节点名称</th>
+                                        <th class="center">节点状态</th>
+                                        <th>节点位置</th>
+                                        <th>响应时间</th>
+                                        <th style="width: 140px;">CPU使用率</th>
+                                        <th style="width: 140px;">内存使用率</th>
+                                        <th class="center">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="status-tbody">
+                                    <!-- 由 JS 渲染 -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination" id="status-pager">
+                            <!-- 由 JS 渲染 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- =============== 视图2: 节点信息维护 =============== -->
+                <div id="view-manage" class="page-body hidden">
+                    <div class="card" style="margin-bottom: 0px; padding-bottom: 24px; flex-shrink: 0;">
+                        <div class="search-area" style="margin-bottom: 0; gap:20px;">
+                            <div class="form-group">
+                                <label>&emsp;节点ID</label>
+                                <input type="text" id="s-id" placeholder="精确搜索节点ID">
+                            </div>
+                            <div class="form-group">
+                                <label>节点名称</label>
+                                <input type="text" id="s-name" placeholder="支持模糊搜索">
+                            </div>
+                            <div class="form-group">
+                                <label>节点位置</label>
+                                <input type="text" id="s-loc" placeholder="支持模糊搜索">
+                            </div>
+                            <div class="form-group">
+                                <label>启用/禁用</label>
+                                <select id="s-status">
+                                    <option value="">全部</option>
+                                    <option value="true">启用</option>
+                                    <option value="false">禁用</option>
+                                </select>
+                            </div>
+                            <div style="flex:1; display:flex; justify-content:flex-end; gap:8px;">
+                                <button class="btn" onclick="resetManageSearch()">重置</button>
+                                <button class="btn btn-primary" onclick="doManageSearch()">查询</button>
+                                <button class="btn-text" style="color:#1890ff; padding-left: 8px;">收起 <i class="ri-arrow-up-s-line"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card" style="flex:1; display:flex; flex-direction:column;">
+                        <div class="toolbar">
+                            <button class="btn btn-outline-primary" onclick="showToast('新建弹窗组件开发中...')"><i class="ri-add-line"></i> 新建节点</button>
+                            <button class="btn btn-danger-light" onclick="batchDelManage()"><i class="ri-delete-bin-line"></i> 批量删除</button>
+                        </div>
+                        
+                        <div style="flex:1; overflow:auto;">
+                            <table class="tbl">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40px;" class="center">
+                                            <input type="checkbox" id="manage-chk-all" style="cursor:pointer;" onchange="toggleAllManage(this)">
+                                        </th>
+                                        <th>序号</th>
+                                        <th>节点ID</th>
+                                        <th>节点名称</th>
+                                        <th>IP地址</th>
+                                        <th>节点位置</th>
+                                        <th class="center">启用/禁用</th>
+                                        <th>创建时间</th>
+                                        <th class="center" style="width: 150px;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="manage-tbody">
+                                    <!-- 由 JS 渲染 -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="pagination" id="manage-pager">
+                            <!-- 由 JS 渲染 -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    
+    <div id="toastBox"></div>
+
+    <script>
+        // 模拟 Toast
+        let toastTimer;
+        function showToast(msg) {
+            clearTimeout(toastTimer);
+            document.getElementById('toastBox').innerHTML = `<div class="toast">${msg}</div>`;
+            toastTimer = setTimeout(() => { document.getElementById('toastBox').innerHTML = ''; }, 2500);
+        }
+
+        // 切换侧边栏视图
+        function switchView(viewName) {
+            document.getElementById('view-status').classList.add('hidden');
+            document.getElementById('view-manage').classList.add('hidden');
+            document.getElementById('menu-status').classList.remove('active');
+            document.getElementById('menu-manage').classList.remove('active');
+            
+            document.getElementById('view-' + viewName).classList.remove('hidden');
+            document.getElementById('menu-' + viewName).classList.add('active');
+            
+            // 确保 ECharts 自适应
+            if(viewName === 'status' && myChart) {
+                setTimeout(() => myChart.resize(), 100);
+            }
+        }
+
+        // ================= 数据中心 =================
+        const mockData = [
+            { id: 1, nodeId: 'BSL000000130', name: '西电模拟节点', ip: '127.0.0.1', loc: '浙江省杭州市萧山区', status: true, time: '2026-03-13 08:36:04', health: '正常', ping: 12, cpu: 25, mem: 46 },
+            { id: 2, nodeId: 'BSL000000129', name: '杭高测试节点三号', ip: '192.168.1.1', loc: '浙江省绍兴市越城区', status: true, time: '2026-02-06 14:46:02', health: '警告', ping: 156, cpu: 92, mem: 88 },
+            { id: 3, nodeId: 'BSL000000128', name: '杭高测试节点二号', ip: '192.168.1.2', loc: '浙江省绍兴市越城区', status: false, time: '2026-02-06 14:44:56', health: '离线', ping: 0, cpu: 0, mem: 0 },
+            { id: 4, nodeId: 'BSL000000127', name: '杭高测试节点一号测试超长内容', ip: '10.0.0.5', loc: '浙江省绍兴市越城区', status: true, time: '2026-02-06 14:41:32', health: '提示', ping: 68, cpu: 75, mem: 62 },
+            { id: 5, nodeId: 'BSL000000123', name: '杭高节点6号', ip: '192.168.1.8', loc: '浙江省宁波市余姚市', status: false, time: '2026-01-20 20:54:05', health: '离线', ping: 0, cpu: 0, mem: 0 },
+            { id: 6, nodeId: 'BSL000000122', name: '杭高节点5号', ip: '172.16.2.11', loc: '浙江省绍兴市上虞区', status: true, time: '2026-01-20 20:52:49', health: '正常', ping: 22, cpu: 34, mem: 42 },
+            { id: 7, nodeId: 'BSL000000121', name: '杭高节点4号', ip: '10.0.0.12', loc: '浙江省绍兴市上虞区', status: true, time: '2026-01-20 20:51:13', health: '警告', ping: 212, cpu: 85, mem: 95 },
+            { id: 8, nodeId: 'BSL000000120', name: '杭高节点3号', ip: '192.168.8.88', loc: '浙江省绍兴市上虞区', status: false, time: '2026-01-20 20:50:20', health: '离线', ping: 0, cpu: 0, mem: 0 },
+            { id: 9, nodeId: 'BSL000000119', name: '杭高节点2号', ip: '127.0.0.1', loc: '浙江省绍兴市上虞区', status: true, time: '2026-01-20 20:49:24', health: '正常', ping: 18, cpu: 28, mem: 56 },
+            { id: 10, nodeId: 'BSL000000118', name: '杭高节点1号', ip: '10.0.0.22', loc: '浙江省绍兴市柯桥区', status: false, time: '2026-01-20 20:48:24', health: '离线', ping: 0, cpu: 0, mem: 0 },
+            { id: 11, nodeId: 'BSL000000110', name: '极限测试节点很长很长', ip: '192.168.3.11', loc: '浙江省杭州市滨江区', status: false, time: '2026-01-18 10:20:00', health: '离线', ping: 0, cpu: 0, mem: 0 },
+            { id: 12, nodeId: 'BSL000000109', name: '边缘计算节点', ip: '127.0.0.1', loc: '浙江省杭州市临平区', status: true, time: '2026-01-15 09:30:00', health: '正常', ping: 8, cpu: 15, mem: 35 },
+            { id: 13, nodeId: 'BSL000000108', name: '备份服务器节点', ip: '172.16.8.2', loc: '浙江省杭州市西湖区', status: true, time: '2026-01-10 11:20:00', health: '提示', ping: 82, cpu: 55, mem: 72 }
+        ];
+
+        let state = {
+            nodes: [...mockData].sort((a,b) => new Date(b.time) - new Date(a.time)),
+            manage: { filter: { id: '', name: '', loc: '', status: '' }, page: 1, pageSize: 10, selectedIds: [] },
+            status: { page: 1, pageSize: 5 }
+        };
+
+        // 更新大盘统计数字
+        function updateStatsDashboard() {
+            let total = state.nodes.length;
+            // 任何启用的均当做在线
+            let activeNodes = state.nodes.filter(t => t.status);
+            let online = activeNodes.length;
+            // 异常节点数：包含警告和提示
+            let abnormal = activeNodes.filter(t => t.health === '警告' || t.health === '提示').length;
+            // 平均响应时间：在线节点之和 / 数量
+            let avgPing = online > 0 ? Math.round(activeNodes.reduce((sum, t) => sum + t.ping, 0) / online) : 0;
+            
+            document.getElementById('stat-s-total').innerText = total;
+            document.getElementById('stat-s-online').innerText = online;
+            document.getElementById('stat-s-abnormal').innerText = abnormal;
+            document.getElementById('stat-s-abnormal').style.color = abnormal > 0 ? '#f56c6c' : '#606266';
+            document.getElementById('stat-s-ping').innerHTML = `${avgPing}<span style="font-size:14px;color:#909399;margin-left:4px;">ms</span>`;
+        }
+
+        // ================= 视图1: 状态展示核心逻辑 =================
+        let myChart = null;
+
+        function initChart() {
+            let chartDom = document.getElementById('statusChart');
+            if(!myChart) {
+                myChart = echarts.init(chartDom);
+            }
+            switchChartTime('today', document.querySelector('#chart-tabs .tab.active'));
+            window.addEventListener('resize', () => myChart.resize());
+        }
+
+        function switchChartTime(range, el) {
+            if(el) {
+                document.querySelectorAll('#chart-tabs .tab').forEach(t => t.classList.remove('active'));
+                el.classList.add('active');
+            }
+            
+            let xAxisData = [];
+            let normalData = [];
+            let abnormalData = [];
+
+            if (range === 'today') {
+                for (let i = 0; i <= 23; i++) {
+                    xAxisData.push(i + ':00');
+                    let base = Math.floor(Math.random() * 5 + 10);
+                    let ab = Math.random() > 0.6 ? Math.floor(Math.random() * 3 + 1) : 0;
+                    normalData.push(base);
+                    abnormalData.push(ab);
+                }
+            } else if (range === 'week') {
+                let days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+                days.forEach(d => {
+                    xAxisData.push(d);
+                    normalData.push(Math.floor(Math.random() * 2 + 12));
+                    abnormalData.push(Math.floor(Math.random() * 3));
+                });
+            } else {
+                for (let i = 1; i <= 30; i++) {
+                    xAxisData.push(i + '日');
+                    normalData.push(Math.floor(Math.random() * 4 + 10));
+                    abnormalData.push(Math.floor(Math.random() * 3));
+                }
+            }
+
+            let option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } }
+                },
+                legend: { data: ['异常节点', '正常节点'], right: 20 },
+                grid: { left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true },
+                xAxis: [ { type: 'category', boundaryGap: false, data: xAxisData } ],
+                yAxis: [ { type: 'value', name: '数量 (个)' } ],
+                series: [
+                    {
+                        name: '异常节点',   // 红底在下方
+                        type: 'line',
+                        stack: 'Total',
+                        areaStyle: {},
+                        emphasis: { focus: 'series' },
+                        itemStyle: { color: '#f56c6c' },
+                        data: abnormalData
+                    },
+                    {
+                        name: '正常节点',   // 绿层盖在上部
+                        type: 'line',
+                        stack: 'Total',
+                        areaStyle: {},
+                        emphasis: { focus: 'series' },
+                        itemStyle: { color: '#67c23a' },
+                        data: normalData
+                    }
+                ]
+            };
+            myChart.setOption(option, true);
+        }
+
+        function renderStatusTable() {
+            let filterName = document.getElementById('status-s-name').value.trim();
+            let filterHealth = document.getElementById('status-s-health').value;
+            
+            // PRD: 首页列表中只会展示工作节点信息；如果禁用则在列表中消失。
+            let activeNodes = state.nodes.filter(t => t.status);
+            
+            let filtered = activeNodes.filter(t => {
+                if (filterName && !t.name.includes(filterName)) return false;
+                if (filterHealth && t.health !== filterHealth) return false;
+                return true;
+            });
+            
+            let total = filtered.length;
+            let totalPages = Math.ceil(total / state.status.pageSize) || 1;
+            if (state.status.page > totalPages) state.status.page = totalPages;
+            
+            let start = (state.status.page - 1) * state.status.pageSize;
+            let paged = filtered.slice(start, start + state.status.pageSize);
+            
+            let tbody = document.getElementById('status-tbody');
+            if (paged.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="center" style="padding: 40px; color: #909399;">暂无数据</td></tr>`;
+            } else {
+                let html = '';
+                paged.forEach((t, i) => {
+                    let seq = start + i + 1;
+                    let nameDisplay = t.name.length > 10 ? t.name.substring(0, 10) + '...' : t.name;
+                    
+                    let healthClass = t.health === '正常' ? 'badge-normal' : (t.health === '提示' ? 'badge-warning' : 'badge-critical');
+                    let healthIcon = t.health === '正常' ? 'ri-checkbox-circle-fill' : (t.health === '提示' ? 'ri-alert-fill' : 'ri-close-circle-fill');
+                    
+                    let cpuColor = t.cpu < 60 ? '#67c23a' : (t.cpu <= 80 ? '#e6a23c' : '#f56c6c');
+                    let memColor = t.mem < 60 ? '#67c23a' : (t.mem <= 80 ? '#e6a23c' : '#f56c6c');
+
+                    html += `<tr>
+                        <td>${seq}</td>
+                        <td style="font-family:monospace;">${t.nodeId}</td>
+                        <td title="${t.name}">${nameDisplay}</td>
+                        <td class="center"><span class="status-badge ${healthClass}"><i class="${healthIcon}"></i> ${t.health}</span></td>
+                        <td>${t.loc}</td>
+                        <td style="font-family:monospace; color:#1890ff;">${t.ping} ms</td>
+                        <td>
+                            <div class="progress-wrapper"><div class="progress-box"><div class="progress-bar" style="width:${t.cpu}%; background:${cpuColor}"></div></div><div class="progress-val">${t.cpu}%</div></div>
+                        </td>
+                        <td>
+                            <div class="progress-wrapper"><div class="progress-box"><div class="progress-bar" style="width:${t.mem}%; background:${memColor}"></div></div><div class="progress-val">${t.mem}%</div></div>
+                        </td>
+                        <td class="center"><button class="btn-text" onclick="showToast('详情页面开发中')">详情</button></td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            }
+            
+            // 渲染分页器
+            let pager = document.getElementById('status-pager');
+            let pagerHtml = `<span>共 ${total} 条</span>`;
+            pagerHtml += `<div class="pg-btn ${state.status.page === 1 ? 'disabled' : ''}" onclick="changeStatusPage(${state.status.page - 1})">&lt;</div>`;
+            for (let i = 1; i <= totalPages; i++) {
+                pagerHtml += `<div class="pg-btn ${i === state.status.page ? 'active' : ''}" onclick="changeStatusPage(${i})">${i}</div>`;
+            }
+            pagerHtml += `<div class="pg-btn ${state.status.page === totalPages ? 'disabled' : ''}" onclick="changeStatusPage(${state.status.page + 1})">&gt;</div>`;
+            pagerHtml += `<span style="margin-left: 8px;">跳至 <input type="text" class="pg-input" value="${state.status.page}" onkeyup="if(event.key==='Enter') { let p=parseInt(this.value); if(p>0&&p<=${totalPages}) changeStatusPage(p); }"> 页</span>`;
+            pager.innerHTML = pagerHtml;
+        }
+
+        function changeStatusPage(pageNum) {
+            state.status.page = pageNum;
+            renderStatusTable();
+        }
+
+        // ================= 视图2: 信息维护核心逻辑 =================
+        function renderManageTable() {
+            let st = state.manage;
+            let filtered = state.nodes.filter(item => {
+                if (st.filter.id && item.nodeId !== st.filter.id) return false;
+                if (st.filter.name && !item.name.includes(st.filter.name)) return false;
+                if (st.filter.loc && !item.loc.includes(st.filter.loc)) return false;
+                if (st.filter.status !== '' && String(item.status) !== st.filter.status) return false;
+                return true;
+            });
+            
+            let total = filtered.length;
+            let totalPages = Math.ceil(total / st.pageSize) || 1;
+            if (st.page > totalPages) st.page = totalPages;
+            
+            let start = (st.page - 1) * st.pageSize;
+            let paged = filtered.slice(start, start + st.pageSize);
+            
+            let allChecked = paged.length > 0 && paged.every(item => st.selectedIds.includes(item.id));
+            document.getElementById('manage-chk-all').checked = allChecked;
+            
+            let tbody = document.getElementById('manage-tbody');
+            if (paged.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="center" style="padding: 60px; color: #909399;">暂无匹配数据</td></tr>`;
+            } else {
+                let html = '';
+                paged.forEach((item, index) => {
+                    let seq = start + index + 1;
+                    let isChecked = st.selectedIds.includes(item.id);
+                    let nameDisplay = item.name.length > 10 ? item.name.substring(0, 10) + '...' : item.name;
+                    
+                    html += `
+                        <tr style="background: ${isChecked ? '#ecf5ff' : ''}">
+                            <td class="center"><input type="checkbox" style="cursor:pointer;" ${isChecked ? 'checked' : ''} onchange="toggleRowCheck(${item.id})"></td>
+                            <td>${seq}</td>
+                            <td>${item.nodeId}</td>
+                            <td title="${item.name}">${nameDisplay}</td>
+                            <td>${item.ip}</td>
+                            <td>${item.loc}</td>
+                            <td class="center">
+                                <label class="switch">
+                                    <input type="checkbox" ${item.status ? 'checked' : ''} onchange="toggleStatus(${item.id})">
+                                    <span class="slider"></span>
+                                </label>
+                            </td>
+                            <td>${item.time}</td>
+                            <td class="center">
+                                <button class="btn-text" onclick="showToast('查看详情开发中')">详情</button>
+                                <button class="btn-text" ${item.status ? 'disabled title="启用状态不可编辑"' : ''} onclick="showToast('编辑功能开发中')">编辑</button>
+                                <button class="btn-text" ${item.status ? 'disabled title="启用状态不可删除"' : ''} onclick="singleDel(${item.id})" style="color: ${item.status ? '#c0c4cc' : '#f56c6c'};">删除</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            }
+            
+            let pager = document.getElementById('manage-pager');
+            let pagerHtml = `<span>共 ${total} 条</span>`;
+            pagerHtml += `<div class="pg-btn ${st.page === 1 ? 'disabled' : ''}" onclick="changeManagePage(${st.page - 1})">&lt;</div>`;
+            for (let i = 1; i <= totalPages; i++) {
+                if (totalPages > 5) {
+                    if (i === 1 || i === totalPages || (i >= st.page - 1 && i <= st.page + 1)) {
+                        pagerHtml += `<div class="pg-btn ${i === st.page ? 'active' : ''}" onclick="changeManagePage(${i})">${i}</div>`;
+                    } else if (i === st.page - 2 || i === st.page + 2) {
+                        pagerHtml += `<div class="pg-btn" style="border:none;">...</div>`;
+                    }
+                } else {
+                    pagerHtml += `<div class="pg-btn ${i === st.page ? 'active' : ''}" onclick="changeManagePage(${i})">${i}</div>`;
+                }
+            }
+            pagerHtml += `<div class="pg-btn ${st.page === totalPages ? 'disabled' : ''}" onclick="changeManagePage(${st.page + 1})">&gt;</div>`;
+            pagerHtml += `<select style="height:28px; border:1px solid #dcdfe6; border-radius:4px; outline:none; margin-left:8px; color:#606266;" onchange="state.manage.pageSize=Number(this.value);state.manage.page=1;renderManageTable()"><option value="10">10条/页</option><option value="20">20条/页</option></select>`;
+            pagerHtml += `<span style="margin-left: 8px;">跳至 <input type="text" class="pg-input" value="${st.page}" onkeyup="if(event.key==='Enter') { let p=parseInt(this.value); if(p>0&&p<=${totalPages}) changeManagePage(p); }"> 页</span>`;
+            pager.innerHTML = pagerHtml;
+        }
+
+        function doManageSearch() {
+            state.manage.filter.id = document.getElementById('s-id').value.trim();
+            state.manage.filter.name = document.getElementById('s-name').value.trim();
+            state.manage.filter.loc = document.getElementById('s-loc').value.trim();
+            state.manage.filter.status = document.getElementById('s-status').value;
+            state.manage.page = 1;
+            renderManageTable();
+            showToast('查询过滤完成');
+        }
+
+        function resetManageSearch() {
+            document.getElementById('s-id').value = '';
+            document.getElementById('s-name').value = '';
+            document.getElementById('s-loc').value = '';
+            document.getElementById('s-status').value = '';
+            state.manage.filter = { id: '', name: '', loc: '', status: '' };
+            state.manage.page = 1;
+            renderManageTable();
+            showToast('筛选条件已重置');
+        }
+
+        function toggleStatus(id) {
+            let item = state.nodes.find(t => t.id === id);
+            if(item) {
+                item.status = !item.status;
+                // 如果从离线变成上线，给它一个默认健康数据模拟展现
+                if(item.status) {
+                    item.health = '正常'; item.ping = Math.floor(Math.random() * 20 + 5); item.cpu = Math.floor(Math.random() * 30 + 10); item.mem = Math.floor(Math.random() * 30 + 10);
+                } else {
+                    item.health = '离线'; item.ping = 0; item.cpu = 0; item.mem = 0;
+                }
+                showToast(`节点 ${item.nodeId} 状态已更新为: ${item.status ? '启用' : '禁用'}`);
+                
+                // 数据联动更新两个表和大盘
+                updateStatsDashboard();
+                renderStatusTable();
+                renderManageTable();
+            }
+        }
+
+        function singleDel(id) {
+            let index = state.nodes.findIndex(t => t.id === id);
+            if (index >= 0) {
+                if (state.nodes[index].status) {
+                    showToast('启用状态的节点不可删除');
+                    return;
+                }
+                if (confirm('确定要删除选用节点吗？')) {
+                    state.nodes.splice(index, 1);
+                    state.manage.selectedIds = state.manage.selectedIds.filter(v => v !== id);
+                    updateStatsDashboard();
+                    renderStatusTable();
+                    renderManageTable();
+                    showToast('节点已删除');
+                }
+            }
+        }
+
+        function batchDelManage() {
+            if (state.manage.selectedIds.length === 0) {
+                showToast('请先勾选需要删除的节点');
+                return;
+            }
+            let selNodes = state.nodes.filter(t => state.manage.selectedIds.includes(t.id));
+            let activeNodes = selNodes.filter(t => t.status);
+            let inactiveNodes = selNodes.filter(t => !t.status);
+            
+            if (inactiveNodes.length === 0) {
+                alert('所选节点均为启用状态，受系统保护不可删除。');
+                return;
+            }
+            
+            let msg = `确认批量删除已选的 ${inactiveNodes.length} 个未启用节点吗？`;
+            if (activeNodes.length > 0) {
+                msg += `\n\n注意：当前选中项中包含了 ${activeNodes.length} 个正处于启动状态的节点，\n系统会自动脱离保护范围，不会对它们执行删除。`;
+            }
+            
+            if (confirm(msg)) {
+                let idsToDelete = inactiveNodes.map(t => t.id);
+                state.nodes = state.nodes.filter(t => !idsToDelete.includes(t.id));
+                state.manage.selectedIds = [];
+                updateStatsDashboard();
+                renderStatusTable();
+                renderManageTable();
+                showToast('批量删除成功');
+            }
+        }
+
+        function toggleRowCheck(id) {
+            if (state.manage.selectedIds.includes(id)) {
+                state.manage.selectedIds = state.manage.selectedIds.filter(v => v !== id);
+            } else {
+                state.manage.selectedIds.push(id);
+            }
+            renderManageTable();
+        }
+
+        function toggleAllManage(checkbox) {
+            let st = state.manage;
+            let filtered = state.nodes.filter(item => {
+                if (st.filter.id && item.nodeId !== st.filter.id) return false;
+                if (st.filter.name && !item.name.includes(st.filter.name)) return false;
+                if (st.filter.loc && !item.loc.includes(st.filter.loc)) return false;
+                if (st.filter.status !== '' && String(item.status) !== st.filter.status) return false;
+                return true;
+            });
+            let start = (st.page - 1) * st.pageSize;
+            let paged = filtered.slice(start, start + st.pageSize);
+            
+            if (checkbox.checked) {
+                paged.forEach(t => {
+                    if (!st.selectedIds.includes(t.id)) st.selectedIds.push(t.id);
+                });
+            } else {
+                let pageIds = paged.map(t => t.id);
+                st.selectedIds = st.selectedIds.filter(id => !pageIds.includes(id));
+            }
+            renderManageTable();
+        }
+
+        function changeManagePage(pageNum) {
+            state.manage.page = pageNum;
+            renderManageTable();
+        }
+
+        // ================= 初始化 =================
+        window.onload = function() {
+            updateStatsDashboard();
+            initChart();
+            renderStatusTable();
+            renderManageTable();
+        };
+    </script>
+</body>
+</html>

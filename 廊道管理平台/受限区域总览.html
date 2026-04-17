@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CICORE IWN廊道运维管理平台 - 禁止通行区域总览</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; font-size: 14px; color: #333; background: #f0f2f5; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+        button, input, select, textarea { font-family: inherit; }
+        .top-header { height: 64px; background: var(--header-bg, #004b9e); color: #fff; display: flex; align-items: center; padding: 0 24px; border-bottom: 1px solid rgba(0,0,0,0.2); }
+        .logo-box { display: flex; align-items: center; gap: 16px; font-weight: 900; font-size: 20px; font-style: italic; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        .top-nav { display: flex; flex: 1; align-items: center; margin-left: 32px; gap: 8px; }
+        .top-nav-item { color: rgba(255, 255, 255, 0.7); padding: 8px 16px; display: flex; align-items: center; cursor: pointer; text-decoration: none; border-radius: 6px; gap: 8px; }
+        .top-nav-item:hover, .top-nav-item.active { color: #fff; background: rgba(255, 255, 255, 0.2); }
+        .user-box { display: flex; align-items: center; gap: 20px; }
+        
+        .main-wrap { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 200px; background: #0e2246; display: flex; flex-direction: column; }
+        .sidebar-item { height: 42px; display: flex; align-items: center; padding: 0 18px; color: rgba(255,255,255,.6); cursor: pointer; }
+        .sidebar-item.active { color: #fff; background: #2684ff; border-left: 3px solid #6bb5ff; }
+        .sidebar-item:hover { color: #fff; background: rgba(255,255,255,.06); }
+        .sidebar-item .ico { margin-right: 10px; }
+
+        .content-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .breadcrumb-bar { height: 40px; background: #fff; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid #e8e8e8; font-size: 13px; color: #999; }
+        .page-body { flex: 1; padding: 16px; overflow: auto; }
+        .card { background: #fff; border-radius: 4px; padding: 24px; border: 1px solid #f0f0f0; }
+
+        .btn { height: 32px; padding: 0 16px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; cursor: pointer; font-size: 13px; }
+        .btn-primary { background: #1890ff; color: #fff; border-color: #1890ff; }
+        
+        .tbl { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        .tbl th { background: #f5f7fa; padding: 12px 14px; text-align: left; font-weight: 600; border-bottom: 1px solid #ebeef5; }
+        .tbl td { padding: 11px 14px; border-bottom: 1px solid #ebeef5; color: #606266; }
+        .tbl tr:hover { background: #f5f7fa; }
+
+        .search-bar { display: flex; gap: 16px; margin-bottom: 16px; }
+        .search-bar input, .search-bar select { height: 32px; border: 1px solid #dcdfe6; border-radius: 4px; padding: 0 10px; width: 200px; }
+        
+        .status-tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 12px; }
+        .conflict-wx { background: #fff1f0; color: #f5222d; border: 1px solid #ffa39e; }
+        .conflict-rt { background: #f0f5ff; color: #2f54eb; border: 1px solid #adc6ff; }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- 统一提取的顶部导航组件 -->
+        <script src="assets/js/header.js"></script>
+
+        <div class="main-wrap">
+            <div class="sidebar">
+                <div class="sidebar-list">
+                    <a class="sidebar-item" href="廊道信息维护.html">
+                        <span class="ico"><i class="ri-route-line"></i></span><span class="txt">廊道信息维护</span>
+                    </a>
+                    <a class="sidebar-item" href="转弯区信息维护.html">
+                        <span class="ico"><i class="ri-corner-up-right-line"></i></span><span class="txt">转弯区信息维护</span>
+                    </a>
+                    <a class="sidebar-item" href="起降点信息维护.html">
+                        <span class="ico"><i class="ri-flight-land-line"></i></span><span class="txt">起降点信息维护</span>
+                    </a>
+                    <a class="sidebar-item" href="应急点信息维护.html">
+                        <span class="ico"><i class="ri-alarm-warning-line"></i></span><span class="txt">应急点信息维护</span>
+                    </a>
+                    <a class="sidebar-item" href="气象环境维护.html">
+                        <span class="ico"><i class="ri-cloud-windy-line"></i></span><span class="txt">气象环境维护</span>
+                    </a>
+                    <a class="sidebar-item" href="空域与航路维护.html">
+                        <span class="ico"><i class="ri-flight-takeoff-line"></i></span><span class="txt">空域与航路维护</span>
+                    </a>
+                    <a class="sidebar-item active" href="受限区域总览.html">
+                        <span class="ico"><i class="ri-error-warning-line"></i></span><span class="txt">禁止通行区域总览</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div class="breadcrumb-bar">廊道基础数据 / 禁止通行区域总览</div>
+                <div class="page-body">
+                    <div class="card">
+                        
+                        <div style="background: #e6f7ff; border: 1px solid #91d5ff; padding: 12px 16px; border-radius: 4px; margin-bottom: 20px; font-size: 13px; color: #0050b3;">
+                            <i class="ri-information-line"></i> 此列表数据由后台冲突计算引擎根据【气象预警模块】与【民航/通航航路信息】自动计算生成。受限路段将在此表展示并同步于规划模块中用于禁止审批。
+                        </div>
+
+                        <div class="search-bar">
+                            <select><option>冲突原因分类 (全部)</option><option>气象条件恶化</option><option>民航航路入侵</option><option>通航空域封锁</option></select>
+                            <input type="text" placeholder="输入受限网格或廊道编号">
+                            <button class="btn btn-primary">过滤列表</button>
+                        </div>
+                        
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>系统分配ID</th>
+                                    <th>关联受限廊道/网格</th>
+                                    <th>冲突原因归类</th>
+                                    <th>具体阻断详细原因说明</th>
+                                    <th>阻断生效开始时间</th>
+                                    <th>阻断生效结束时间</th>
+                                    <th>当前状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>BLOCK-2026-0001</td>
+                                    <td>廊道网格 G-12A45 ~ G-12A48</td>
+                                    <td><span class="status-tag conflict-wx">气象条件恶化</span></td>
+                                    <td>命中 WX-RULE-001：检测到当前风速 18.5m/s 超过阈值</td>
+                                    <td>2026-04-14 09:00:00</td>
+                                    <td>2026-04-14 15:00:00 (预计)</td>
+                                    <td><span style="color:#f56c6c;font-weight:600;">正在阻断</span></td>
+                                    <td><a href="#" style="color:#1890ff;">在气象面板查看</a></td>
+                                </tr>
+                                <tr>
+                                    <td>BLOCK-2026-0002</td>
+                                    <td>物理走廊段 COR-331 及其临近区域</td>
+                                    <td><span class="status-tag conflict-rt">民航航路交汇</span></td>
+                                    <td>与民航航路 CA-RTE-A593 存在 1500m 海拔高度立体交叉，由于飞行等级优先级触发区域封锁</td>
+                                    <td>2026-04-14 00:00:00</td>
+                                    <td>长期有效 (由航路决定)</td>
+                                    <td><span style="color:#f56c6c;font-weight:600;">正在阻断</span></td>
+                                    <td><a href="#" style="color:#1890ff;">在空域地图查看</a></td>
+                                </tr>
+                                <tr>
+                                    <td>BLOCK-2026-0003</td>
+                                    <td>廊道网格 G-77B21</td>
+                                    <td><span class="status-tag conflict-wx">气象条件恶化</span></td>
+                                    <td>命中 WX-RULE-002：未来三小时云图推演降水 14mm/h 超过阈值</td>
+                                    <td>2026-04-14 18:00:00</td>
+                                    <td>2026-04-14 23:00:00 (预计)</td>
+                                    <td><span style="color:#fa8c16;font-weight:600;">即将阻断</span></td>
+                                    <td><a href="#" style="color:#1890ff;">在气象面板查看</a></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

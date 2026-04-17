@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CICORE IWN廊道运维管理平台 - 转弯区信息维护</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
+            height: 100%; overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            font-size: 14px; color: #333; background: #f0f2f5;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+        button { font-family: inherit; font-size: inherit; }
+        input, select, textarea { font-family: inherit; }
+
+        /* Toast */
+        .toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 9999; padding: 12px 24px; border-radius: 6px; color: #fff;
+            font-size: 14px; box-shadow: 0 6px 16px rgba(0,0,0,.15);
+            animation: toastAni .3s ease;
+        }
+        .toast.success { background: #67c23a; }
+        .toast.warning { background: #e6a23c; }
+        .toast.error   { background: #f56c6c; }
+        .toast.info    { background: #909399; }
+        @keyframes toastAni {
+            from { opacity:0; transform: translate(-50%,-20px); }
+            to   { opacity:1; transform: translate(-50%,0); }
+        }
+
+        /* 布局 */
+
+        .top-header {
+            height: 64px;
+            background: var(--header-bg, #004b9e);
+            color: #fff; display: flex; align-items: center; flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,.3); z-index: 100;
+            padding: 0 24px; box-sizing: border-box;
+            border-bottom: 1px solid rgba(0,0,0,0.2);
+        }
+        .logo-box { height: 100%; display: flex; align-items: center; flex-shrink: 0; gap: 16px; }
+        .logo-box .brand { font-weight: 900; font-size: 20px; font-style: italic; color: #fff; letter-spacing: 1px; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        .logo-box .collapse-btn { font-size: 20px; cursor: pointer; color: rgba(255,255,255,0.85); transition: color 0.2s; }
+        .logo-box .collapse-btn:hover { color: #fff; }
+
+        .top-nav { display: flex; height: 100%; flex: 1; align-items: center; margin-left: 32px; gap: 8px; }
+        .top-nav-item {
+            color: rgba(255,255,255,0.7); padding: 8px 16px;
+            display: flex; align-items: center; cursor: pointer;
+            font-size: 14px; font-weight: 500; transition: all .25s;
+            border-radius: 6px; gap: 8px; text-decoration: none;
+        }
+        .top-nav-item i { font-size: 18px; }
+        .top-nav-item:hover { color: #fff; background: rgba(255,255,255,0.1); }
+        .top-nav-item.active { color: #fff; background: rgba(255,255,255,0.2); }
+
+        .user-box { display: flex; align-items: center; gap: 20px; font-size: 14px; color: rgba(255,255,255,1); }
+        .user-box .dots { font-size: 18px; cursor: pointer; opacity: 0.85; transition: opacity 0.2s; }
+        .user-box .dots:hover { opacity: 1; }
+        .avatar { width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(255,255,255,.8); display: flex; align-items: center; justify-content: center; font-size: 14px; gap: 6px; }
+
+        .main-wrap { display: flex; flex: 1; overflow: hidden; }
+
+        .sidebar {
+            width: 200px; background: #0e2246;
+            display: flex; flex-direction: column; flex-shrink: 0;
+            transition: width .3s; z-index: 10;
+            box-shadow: 2px 0 6px rgba(0,0,0,.1);
+        }
+        .sidebar.collapsed { width: 56px; }
+        .sidebar-list { flex: 1; padding-top: 6px; }
+        .sidebar-item {
+            height: 42px; display: flex; align-items: center;
+            padding: 0 18px; color: rgba(255,255,255,.6);
+            cursor: pointer; transition: all .2s; font-size: 14px;
+            overflow: hidden; white-space: nowrap;
+        }
+        .sidebar-item:hover { color: #fff; background: rgba(255,255,255,.06); }
+        .sidebar-item.active { color: #fff; background: #2684ff; border-left: 3px solid #6bb5ff; }
+        .sidebar-item .ico { width: 20px; text-align: center; margin-right: 10px; flex-shrink: 0; font-size: 15px; }
+        .sidebar.collapsed .sidebar-item { justify-content: center; padding: 0 18px; }
+        .sidebar.collapsed .sidebar-item .ico { margin-right: 0; }
+        .sidebar.collapsed .sidebar-item .txt { display: none; }
+        .sidebar-footer {
+            height: 40px; display: flex; align-items: center;
+            padding: 0 18px; color: rgba(255,255,255,.35);
+            cursor: pointer; border-top: 1px solid rgba(255,255,255,.05);
+            font-size: 13px; transition: color .2s;
+        }
+        .sidebar-footer:hover { color: #fff; }
+        .sidebar.collapsed .sidebar-footer .ftxt { display: none; }
+
+        .content-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .breadcrumb-bar {
+            height: 40px; background: #fff; display: flex; align-items: center;
+            padding: 0 20px; border-bottom: 1px solid #e8e8e8;
+            flex-shrink: 0; font-size: 13px; color: #999;
+        }
+        .breadcrumb-bar .bc-act { color: #333; font-weight: 500; }
+        .page-body { flex: 1; padding: 16px; overflow: auto; }
+
+        .card {
+            background: #fff; border-radius: 4px; padding: 24px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.04); border: 1px solid #f0f0f0;
+        }
+
+        /* 按钮 */
+        .btn {
+            height: 32px; padding: 0 16px; border: 1px solid #dcdfe6;
+            border-radius: 4px; cursor: pointer; font-size: 13px;
+            transition: all .2s; display: inline-flex; align-items: center;
+            gap: 4px; background: #fff; color: #606266; user-select: none;
+        }
+        .btn:hover { border-color: #1890ff; color: #1890ff; }
+        .btn-primary { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .btn-primary:hover { background: #40a9ff; border-color: #40a9ff; color: #fff; }
+        .btn-danger { background: #f56c6c; color: #fff; border-color: #f56c6c; }
+        .btn-danger:hover { background: #f78989; border-color: #f78989; color: #fff; }
+        .btn-link { background: none; border: none; color: #1890ff; padding: 0 6px; cursor: pointer; font-size: 13px; }
+        .btn-link:hover { color: #40a9ff; }
+        .btn-link-d { background: none; border: none; color: #f56c6c; padding: 0 6px; cursor: pointer; font-size: 13px; }
+        .btn-link-d:hover { color: #f78989; }
+        .btn.disabled, .btn-link.disabled, .btn-link-d.disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+        .collapse-lnk { background: none; border: none; color: #1890ff; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 2px; }
+
+        /* 表单 */
+        .fi { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+        .ff { display: flex; align-items: center; }
+        .ff label { font-size: 14px; color: #606266; margin-right: 8px; white-space: nowrap; }
+        .ff input, .ff select {
+            height: 32px; border: 1px solid #dcdfe6; border-radius: 4px;
+            padding: 0 12px; font-size: 13px; outline: none;
+            transition: border .2s; width: 200px; color: #606266;
+        }
+        .ff input:focus, .ff select:focus { border-color: #1890ff; }
+        .ff input::placeholder { color: #c0c4cc; }
+
+        /* 表格 */
+        .tbl { width: 100%; border-collapse: collapse; }
+        .tbl thead th {
+            background: #f5f7fa; color: #333; font-weight: 600;
+            font-size: 13px; padding: 12px 14px; text-align: left;
+            border-bottom: 1px solid #ebeef5; white-space: nowrap;
+        }
+        .tbl tbody td {
+            padding: 11px 14px; border-bottom: 1px solid #ebeef5;
+            font-size: 13px; color: #606266;
+        }
+        .tbl tbody tr:hover { background: #f5f7fa; }
+        .tbl tbody tr.sel { background: #ecf5ff; }
+        .chk { width: 16px; height: 16px; accent-color: #1890ff; cursor: pointer; }
+
+        .stag {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 12px; padding: 2px 8px; border-radius: 3px;
+        }
+        .stag.on  { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
+        .stag.off { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+
+        /* 分页 */
+        .pager {
+            display: flex; justify-content: flex-end; align-items: center;
+            padding-top: 16px; font-size: 13px; color: #606266; gap: 6px;
+        }
+        .pg {
+            min-width: 28px; height: 28px; border: 1px solid #dcdfe6;
+            border-radius: 3px; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; background: #fff;
+            transition: all .2s; padding: 0 6px;
+        }
+        .pg:hover { color: #1890ff; border-color: #1890ff; }
+        .pg.act { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .pg.dis { opacity: .35; cursor: not-allowed; pointer-events: none; }
+        .pg-inp {
+            width: 42px; height: 28px; text-align: center;
+            border: 1px solid #dcdfe6; border-radius: 3px;
+            outline: none; font-size: 13px;
+        }
+        .pg-inp:focus { border-color: #1890ff; }
+
+        /* 弹窗 */
+        .modal-bg {
+            position: fixed; inset: 0; background: rgba(0,0,0,.45);
+            z-index: 100; display: flex; align-items: center;
+            justify-content: center; animation: fadeIn .2s ease;
+        }
+        .modal { background: #fff; border-radius: 6px; max-height: 90vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,.15); animation: slideIn .25s ease; }
+        .modal-hd { padding: 16px 24px; border-bottom: 1px solid #f0f0f0; font-size: 16px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .modal-cls { cursor: pointer; font-size: 20px; color: #999; background: none; border: none; transition: color .2s; }
+        .modal-cls:hover { color: #333; }
+        .modal-bd { padding: 24px; }
+        .modal-ft { padding: 12px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 8px; }
+
+        /* 新建/编辑表单 */
+        .form-panel { max-width: 560px; }
+        .dr2 { display: flex; align-items: flex-start; margin-bottom: 20px; }
+        .dr2 label { width: 110px; text-align: right; margin-right: 12px; font-size: 14px; color: #606266; flex-shrink: 0; line-height: 36px; }
+        .dr2 label .req { color: #f56c6c; margin-right: 2px; }
+        .dr2 input, .dr2 select, .dr2 textarea {
+            flex: 1; height: 36px; border: 1px solid #dcdfe6; border-radius: 4px;
+            padding: 0 12px; font-size: 14px; outline: none; transition: border .2s; color: #606266;
+        }
+        .dr2 input:focus, .dr2 select:focus, .dr2 textarea:focus { border-color: #1890ff; }
+        .dr2 input:disabled, .dr2 select:disabled, .dr2 textarea:disabled { background: #f5f7fa; color: #999; cursor: not-allowed; border-color: #e4e7ed; }
+        .dr2 textarea { height: 80px; padding: 8px 12px; resize: vertical; line-height: 1.5; }
+        .err-h { font-size: 12px; color: #f56c6c; margin-top: 4px; }
+        .da { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
+        .dt { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        @keyframes slideIn { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+        .hidden { display: none !important; }
+    </style>
+</head>
+
+<body>
+<div class="app" id="app">
+    <div id="toastBox"></div>
+
+    <!-- 统一提取的顶部导航组件 -->
+        <script src="assets/js/header.js"></script>
+
+    <!-- 主体 -->
+    <div class="main-wrap">
+        <!-- 侧边栏 -->
+        <div class="sidebar" id="sidebar">
+<div class="sidebar-list">
+                    <a class="sidebar-item" href="廊道信息维护.html">
+                        <span class="ico"><i class="ri-route-line"></i></span><span class="txt">廊道信息维护</span>
+                    </a>
+                    <a class="sidebar-item active" href="转弯区信息维护.html">
+                        <span class="ico"><i class="ri-corner-up-right-line"></i></span><span class="txt">转弯区信息维护</span>
+                    </a>
+                    <a class="sidebar-item" href="起降点信息维护.html">
+                        <span class="ico"><i class="ri-flight-land-line"></i></span><span class="txt">起降点信息维护</span>
+                    </a>
+                    <a class="sidebar-item" href="应急点信息维护.html">
+                        <span class="ico"><i class="ri-alarm-warning-line"></i></span><span class="txt">应急点信息维护</span>
+                    </a>
+                    <a class="sidebar-item" href="气象环境维护.html">
+                        <span class="ico"><i class="ri-cloud-windy-line"></i></span><span class="txt">气象环境维护</span>
+                    </a>
+                    <a class="sidebar-item" href="空域与航路维护.html">
+                        <span class="ico"><i class="ri-flight-takeoff-line"></i></span><span class="txt">空域与航路维护</span>
+                    </a>
+                    <a class="sidebar-item" href="受限区域总览.html">
+                        <span class="ico"><i class="ri-error-warning-line"></i></span><span class="txt">禁止通行区域总览</span>
+                    </a>
+                </div>
+
+
+            <div class="sidebar-footer" onclick="toggleSidebar()">
+                <span id="sidebarArrow">◀</span>&nbsp;<span class="ftxt" id="sidebarTxt">收起</span>
+            </div>
+        </div>
+
+        <!-- 内容区 -->
+        <div class="content-area">
+            <div class="breadcrumb-bar">
+                廊道基础数据 <span style="margin:0 6px;color:#ccc;">/</span>
+                <span class="bc-act" id="bcText">转弯区信息维护</span>
+            </div>
+            <div class="page-body" id="pageBody">
+                <!-- 列表视图 -->
+                <div id="viewList" class="card" style="min-height:100%;display:flex;flex-direction:column;"></div>
+                <!-- 新建/编辑/详情视图 -->
+                <div id="viewForm" class="hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 弹窗容器 -->
+    <div id="modalBox"></div>
+</div>
+
+<script>
+    // ==================== 数据层 ====================
+    var state = {
+        sidebarFold: false,
+        view: 'list',
+        filterFold: false,
+        search: { turnId: '', turnCode: '', corridorIds: '', status: '' },
+        curPage: 1, pgSize: 10,
+        selIds: [],
+        turns: [
+            { id: 1, turnId: '77', turnCode: '转弯区0401', corridorIds: '航道070901, 航道090501', status: true,  createTime: '2026-04-03 11:21:22' },
+            { id: 2, turnId: '72', turnCode: 'C02_2',      corridorIds: 'C02航段2, C02航段1',     status: true,  createTime: '2026-03-27 17:05:35' },
+            { id: 3, turnId: '71', turnCode: 'C02_2',      corridorIds: 'C02航段2, C02航段1',     status: true,  createTime: '2026-03-27 17:00:37' },
+            { id: 4, turnId: '70', turnCode: 'G6P',        corridorIds: 'G6C航道1, G6C航道1',     status: true,  createTime: '2026-03-27 16:41:58' },
+        ],
+        nextId: 100,
+        formMode: '', editRow: null,
+        form: { turnCode: '', corridorIds: '', status: true, remark: '' },
+        formErr: {}, formDirty: false
+    };
+
+    function $(id) { return document.getElementById(id); }
+    function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    var toastTimer;
+    function showToast(msg, type) {
+        type = type || 'success';
+        clearTimeout(toastTimer);
+        $('toastBox').innerHTML = '<div class="toast ' + type + '">' + esc(msg) + '</div>';
+        toastTimer = setTimeout(function(){ $('toastBox').innerHTML = ''; }, 2500);
+    }
+
+    function showModal(title, html, actions) {
+        var h = '<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal" style="width:420px;">';
+        h += '<div class="modal-hd"><span>' + esc(title) + '</span><button class="modal-cls" onclick="closeModal()">&times;</button></div>';
+        h += '<div class="modal-bd" style="font-size:14px;color:#606266;line-height:1.6;">' + html + '</div>';
+        h += '<div class="modal-ft">';
+        actions.forEach(function(a){ h += '<button class="btn ' + (a.cls||'') + '" onclick="' + a.onclick + '">' + esc(a.text) + '</button>'; });
+        h += '</div></div></div>';
+        $('modalBox').innerHTML = h;
+    }
+    function closeModal() { $('modalBox').innerHTML = ''; }
+
+    // ==================== 侧边栏 ====================
+    function toggleSidebar() {
+        state.sidebarFold = !state.sidebarFold;
+        $('sidebar').className = 'sidebar' + (state.sidebarFold ? ' collapsed' : '');
+        $('sidebarArrow').textContent = state.sidebarFold ? '▶' : '◀';
+    }
+    function setSideMenu(m) {
+        document.querySelectorAll('.sidebar-item').forEach(function(el){
+            el.classList.toggle('active', el.getAttribute('data-menu') === m);
+        });
+        render();
+    }
+
+    // ==================== 过滤/分页 ====================
+    function getFiltered() {
+        return state.turns.filter(function(r) {
+            if (state.search.turnId   && r.turnId.indexOf(state.search.turnId) === -1) return false;
+            if (state.search.turnCode && r.turnCode.indexOf(state.search.turnCode) === -1) return false;
+            if (state.search.corridorIds && r.corridorIds.indexOf(state.search.corridorIds) === -1) return false;
+            if (state.search.status !== '' && String(r.status) !== state.search.status) return false;
+            return true;
+        });
+    }
+    function getPaged(filtered) {
+        var s = (state.curPage - 1) * state.pgSize;
+        return filtered.slice(s, s + state.pgSize);
+    }
+
+    // ==================== 列表渲染 ====================
+    function renderList() {
+        $('viewList').className = 'card';
+        $('viewList').style.cssText = 'min-height:100%;display:flex;flex-direction:column;';
+        $('viewForm').className = 'hidden';
+        $('bcText').textContent = '转弯区信息维护';
+
+        var filtered = getFiltered();
+        var paged = getPaged(filtered);
+        var totalPages = Math.max(1, Math.ceil(filtered.length / state.pgSize));
+        var allChk = paged.length > 0 && paged.every(function(r){ return state.selIds.indexOf(r.id) >= 0; });
+
+        var h = '';
+        // 搜索区
+        h += '<div style="margin-bottom:16px;">';
+        h += '<div class="fi">';
+        h += '<div class="ff"><label>转弯区ID:</label><input id="sTurnId" placeholder="请输入转弯区ID" value="' + esc(state.search.turnId) + '" onkeyup="if(event.key===\'Enter\')doSearch()" /></div>';
+        h += '<div class="ff"><label>转弯区名称:</label><input id="sTurnCode" placeholder="请输入转弯区名称" value="' + esc(state.search.turnCode) + '" onkeyup="if(event.key===\'Enter\')doSearch()" /></div>';
+        h += '<div class="ff"><label>转弯区关联航道:</label><input id="sCorridorIds" placeholder="请输入转弯区关联航道" value="' + esc(state.search.corridorIds) + '" onkeyup="if(event.key===\'Enter\')doSearch()" /></div>';
+        h += '</div>';
+        h += '<div class="fi' + (state.filterFold ? ' hidden' : '') + '" id="filterExtra" style="margin-top:12px;">';
+        h += '<div class="ff"><label>可用状态:</label><select id="sStatus"><option value="">全部可用状态</option><option value="true"' + (state.search.status === 'true' ? ' selected' : '') + '>可用</option><option value="false"' + (state.search.status === 'false' ? ' selected' : '') + '>不可用</option></select></div>';
+        h += '</div>';
+        h += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">';
+        h += '<button class="btn btn-primary" onclick="doSearch()">查询</button>';
+        h += '<button class="btn" onclick="resetSearch()">重置</button>';
+        h += '<button class="collapse-lnk" onclick="toggleFilter()">' + (state.filterFold ? '展开 ▼' : '收起 ▲') + '</button>';
+        h += '</div></div>';
+
+        // 操作栏
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-top:12px;border-top:1px dashed #f0f0f0;">';
+        h += '<span style="font-size:13px;color:#999;">' + (state.selIds.length ? '<span style="background:#e6f7ff;color:#1890ff;padding:2px 10px;border-radius:3px;">已选 ' + state.selIds.length + ' 项</span>' : '') + '</span>';
+        h += '<div style="display:flex;gap:8px;">';
+        h += '<button class="btn btn-primary" onclick="goCreate()">＋ 新建转弯区</button>';
+        h += '<button class="btn btn-danger' + (state.selIds.length === 0 ? ' disabled' : '') + '" onclick="batchDel()">批量删除</button>';
+        h += '</div></div>';
+
+        // 表格
+        h += '<table class="tbl"><thead><tr>';
+        h += '<th style="width:50px;text-align:center;"><input type="checkbox" class="chk" ' + (allChk ? 'checked' : '') + ' onchange="toggleAll(this)" /></th>';
+        h += '<th style="width:60px;">序号</th><th>转弯区ID</th><th>转弯区代码</th><th>转弯区关联航道</th><th style="width:100px;">可用状态</th><th>创建时间</th><th style="width:160px;">操作</th>';
+        h += '</tr></thead><tbody>';
+        if (paged.length === 0) {
+            h += '<tr><td colspan="8" style="text-align:center;padding:40px;color:#bbb;">暂无数据</td></tr>';
+        } else {
+            paged.forEach(function(r, idx) {
+                var isSel = state.selIds.indexOf(r.id) >= 0;
+                var seq = (state.curPage - 1) * state.pgSize + idx + 1;
+                h += '<tr class="' + (isSel ? 'sel' : '') + '">';
+                h += '<td style="text-align:center;"><input type="checkbox" class="chk" ' + (isSel ? 'checked' : '') + ' onchange="toggleSel(' + r.id + ')" /></td>';
+                h += '<td>' + seq + '</td>';
+                h += '<td style="color:#1890ff;cursor:pointer;" onclick="goDetail(' + r.id + ')">' + esc(r.turnId) + '</td>';
+                h += '<td>' + esc(r.turnCode) + '</td>';
+                h += '<td>' + esc(r.corridorIds) + '</td>';
+                h += '<td><span class="stag ' + (r.status ? 'on' : 'off') + '">' + (r.status ? '可用' : '不可用') + '</span></td>';
+                h += '<td>' + esc(r.createTime) + '</td>';
+                h += '<td>';
+                h += '<button class="btn-link" onclick="goDetail(' + r.id + ')">详情</button>';
+                h += '<button class="btn-link" onclick="goEdit(' + r.id + ')">编辑</button>';
+                h += '<button class="btn-link-d" onclick="singleDel(' + r.id + ')">删除</button>';
+                h += '</td></tr>';
+            });
+        }
+        h += '</tbody></table>';
+
+        // 分页
+        h += '<div class="pager">';
+        h += '<span>共 ' + filtered.length + ' 条</span>';
+        h += '<div class="pg' + (state.curPage <= 1 ? ' dis' : '') + '" onclick="goPage(' + (state.curPage - 1) + ')">&lt;</div>';
+        for (var p = 1; p <= totalPages; p++) {
+            h += '<div class="pg' + (state.curPage === p ? ' act' : '') + '" onclick="goPage(' + p + ')">' + p + '</div>';
+        }
+        h += '<div class="pg' + (state.curPage >= totalPages ? ' dis' : '') + '" onclick="goPage(' + (state.curPage + 1) + ')">&gt;</div>';
+        h += '<span>10/页</span><span>跳至</span><input class="pg-inp" id="jumpInput" value="' + state.curPage + '" onkeyup="if(event.key===\'Enter\')jumpPage()" /><span>页</span>';
+        h += '</div>';
+
+        $('viewList').innerHTML = h;
+    }
+
+    // ==================== 搜索 ====================
+    function readSearchInputs() {
+        var ti = $('sTurnId'), tc = $('sTurnCode'), ci = $('sCorridorIds'), st = $('sStatus');
+        if (ti) state.search.turnId = ti.value;
+        if (tc) state.search.turnCode = tc.value;
+        if (ci) state.search.corridorIds = ci.value;
+        if (st) state.search.status = st.value;
+    }
+    function doSearch() { readSearchInputs(); state.curPage = 1; renderList(); showToast('查询完成，共' + getFiltered().length + '条'); }
+    function resetSearch() { state.search = { turnId:'', turnCode:'', corridorIds:'', status:'' }; state.curPage = 1; renderList(); showToast('已重置'); }
+    function toggleFilter() { readSearchInputs(); state.filterFold = !state.filterFold; renderList(); }
+    function goPage(p) { var t = Math.max(1, Math.ceil(getFiltered().length / state.pgSize)); if (p >= 1 && p <= t) { state.curPage = p; renderList(); } }
+    function jumpPage() { var v = parseInt($('jumpInput').value); if (!isNaN(v)) goPage(v); }
+
+    // ==================== 多选 ====================
+    function toggleSel(id) { var i = state.selIds.indexOf(id); if (i >= 0) state.selIds.splice(i, 1); else state.selIds.push(id); renderList(); }
+    function toggleAll(el) {
+        var paged = getPaged(getFiltered());
+        if (el.checked) { paged.forEach(function(r){ if (state.selIds.indexOf(r.id) < 0) state.selIds.push(r.id); }); }
+        else { var ids = paged.map(function(r){ return r.id; }); state.selIds = state.selIds.filter(function(id){ return ids.indexOf(id) < 0; }); }
+        renderList();
+    }
+
+    // ==================== 删除 ====================
+    function singleDel(id) {
+        var r = state.turns.find(function(n){ return n.id === id; });
+        if (!r) return;
+        showModal('删除确认', '确定要删除转弯区 <b>"' + esc(r.turnCode) + '"</b> 吗？<br>此操作不可恢复。',
+            [{ text:'取消', onclick:'closeModal()' }, { text:'确定删除', cls:'btn-danger', onclick:'confirmSingleDel(' + id + ')' }]);
+    }
+    function confirmSingleDel(id) { state.turns = state.turns.filter(function(n){ return n.id !== id; }); closeModal(); renderList(); showToast('已删除'); }
+
+    function batchDel() {
+        if (state.selIds.length === 0) return;
+        showModal('批量删除确认', '确定要删除选中的 <b>' + state.selIds.length + '</b> 个转弯区吗？<br>此操作不可恢复。',
+            [{ text:'取消', onclick:'closeModal()' }, { text:'确定删除', cls:'btn-danger', onclick:'confirmBatchDel()' }]);
+    }
+    function confirmBatchDel() {
+        var cnt = state.selIds.length;
+        state.turns = state.turns.filter(function(r){ return state.selIds.indexOf(r.id) < 0; });
+        state.selIds = []; closeModal(); renderList(); showToast('批量删除完成，共删除' + cnt + '个');
+    }
+
+    // ==================== 新建/编辑/详情 ====================
+    function clearForm() {
+        state.form = { turnCode:'', corridorIds:'', status:true, remark:'' };
+        state.formErr = {}; state.formDirty = false; state.editRow = null;
+    }
+    function goCreate() { clearForm(); state.formMode = 'create'; state.view = 'form'; render(); }
+    function goDetail(id) {
+        var r = state.turns.find(function(n){ return n.id === id; }); if (!r) return;
+        clearForm(); state.editRow = r; state.formMode = 'detail';
+        state.form = { turnCode: r.turnCode, corridorIds: r.corridorIds, status: r.status, remark: r.remark || '' };
+        state.view = 'form'; render();
+    }
+    function goEdit(id) {
+        var r = state.turns.find(function(n){ return n.id === id; }); if (!r) return;
+        clearForm(); state.editRow = r; state.formMode = 'edit';
+        state.form = { turnCode: r.turnCode, corridorIds: r.corridorIds, status: r.status, remark: r.remark || '' };
+        state.view = 'form'; render();
+    }
+    function goBack() {
+        if (state.formDirty && state.formMode !== 'detail') {
+            showModal('离开确认', '您有未保存的修改，确定要离开吗？',
+                [{ text:'取消', onclick:'closeModal()' }, { text:'确定离开', cls:'btn-primary', onclick:'confirmBack()' }]);
+        } else { state.view = 'list'; render(); }
+    }
+    function confirmBack() { closeModal(); state.view = 'list'; render(); }
+
+    function renderFormView() {
+        $('viewList').className = 'hidden';
+        $('viewForm').className = '';
+        var mode = state.formMode;
+        var isRO = mode === 'detail';
+        var dis = isRO ? ' disabled' : '';
+        var f = state.form;
+        var e = state.formErr;
+        var titles = { create:'新建转弯区', edit:'编辑转弯区', detail:'转弯区详情' };
+        $('bcText').textContent = titles[mode] || '';
+
+        var h = '<div class="card form-panel">';
+        h += '<div class="dt">' + titles[mode] + '</div>';
+
+        h += '<div class="dr2"><label><span class="req">*</span> 转弯区代码：</label><div style="flex:1;">';
+        h += '<input id="fCode" value="' + esc(f.turnCode) + '"' + dis + ' placeholder="请输入转弯区代码" oninput="state.formDirty=true" />';
+        if (e.turnCode) h += '<div class="err-h">' + esc(e.turnCode) + '</div>';
+        h += '</div></div>';
+
+        h += '<div class="dr2"><label>关联航道：</label><div style="flex:1;">';
+        h += '<input id="fCorridorIds" value="' + esc(f.corridorIds) + '"' + dis + ' placeholder="请输入关联航道，多个用英文逗号分隔" oninput="state.formDirty=true" />';
+        h += '</div></div>';
+
+        h += '<div class="dr2"><label>可用状态：</label><div style="flex:1;display:flex;align-items:center;gap:8px;height:36px;">';
+        if (isRO) {
+            h += '<span class="stag ' + (f.status ? 'on' : 'off') + '">' + (f.status ? '可用' : '不可用') + '</span>';
+        } else {
+            h += '<select id="fStatus"><option value="true"' + (f.status ? ' selected' : '') + '>可用</option><option value="false"' + (!f.status ? ' selected' : '') + '>不可用</option></select>';
+        }
+        h += '</div></div>';
+
+        h += '<div class="dr2"><label>备注：</label><div style="flex:1;">';
+        h += '<textarea id="fRemark"' + dis + ' placeholder="选填，最多200个字符" maxlength="200" oninput="state.formDirty=true">' + esc(f.remark) + '</textarea>';
+        h += '</div></div>';
+
+        if (mode === 'detail' && state.editRow) {
+            h += '<div class="dr2"><label>创建时间：</label><input value="' + esc(state.editRow.createTime) + '" disabled /></div>';
+        }
+
+        h += '<div class="da"><button class="btn" onclick="goBack()">返回列表</button>';
+        if (!isRO) h += '<button class="btn btn-primary" onclick="saveForm()">保 存</button>';
+        h += '</div>';
+        h += '</div>';
+
+        $('viewForm').innerHTML = h;
+    }
+
+    function saveForm() {
+        var f = state.form, e = {}, ok = true;
+        var codeEl = $('fCode'), statusEl = $('fStatus'), corridorEl = $('fCorridorIds'), remarkEl = $('fRemark');
+        if (codeEl) f.turnCode = codeEl.value;
+        if (corridorEl) f.corridorIds = corridorEl.value;
+        if (statusEl) f.status = statusEl.value === 'true';
+        if (remarkEl) f.remark = remarkEl.value;
+
+        if (!f.turnCode.trim()) { e.turnCode = '转弯区代码不能为空'; ok = false; }
+        state.formErr = e;
+        if (!ok) { renderFormView(); showToast('请检查表单中的错误项', 'error'); return; }
+
+        var now = new Date();
+        var ts = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+
+        if (state.formMode === 'create') {
+            state.nextId++;
+            state.turns.unshift({ id: state.nextId, turnId: String(state.nextId), turnCode: f.turnCode.trim(), corridorIds: f.corridorIds, status: f.status, createTime: ts, remark: f.remark });
+            showToast('转弯区创建成功！');
+        } else if (state.editRow) {
+            var t = state.editRow;
+            t.turnCode = f.turnCode.trim(); t.corridorIds = f.corridorIds; t.status = f.status; t.remark = f.remark;
+            showToast('转弯区信息已更新');
+        }
+        state.formDirty = false; state.view = 'list'; render();
+    }
+
+    // ==================== 总渲染 ====================
+    function render() {
+        if (state.view === 'list') renderList();
+        else renderFormView();
+    }
+
+    render();
+</script>
+</body>
+</html>

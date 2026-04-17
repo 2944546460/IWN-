@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CICORE IWN廊道运维管理平台 - 廊道态势显示</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            height: 100%;
+            overflow: hidden;
+            font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+            font-size: 14px;
+            color: #fff;
+            background: #0a1628;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* ========== 顶部导航 ========== */
+        .top-header {
+            height: 64px;
+            background: var(--header-bg, #004b9e);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+            z-index: 100;
+            padding: 0 24px;
+            box-sizing: border-box;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .logo-box {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            gap: 16px;
+        }
+
+        .logo-box .brand {
+            font-weight: 900;
+            font-size: 20px;
+            font-style: italic;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo-box .collapse-btn {
+            font-size: 20px;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.85);
+            transition: color 0.2s;
+        }
+
+        .logo-box .collapse-btn:hover {
+            color: #fff;
+        }
+
+        .top-nav {
+            display: flex;
+            height: 100%;
+            flex: 1;
+            align-items: center;
+            margin-left: 32px;
+            gap: 8px;
+        }
+
+        .top-nav-item {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all .25s;
+            border-radius: 6px;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .top-nav-item i {
+            font-size: 18px;
+        }
+
+        .top-nav-item:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .top-nav-item.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .user-box {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 1);
+        }
+
+        .user-box .dots {
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.85;
+            transition: opacity 0.2s;
+        }
+
+        .user-box .dots:hover {
+            opacity: 1;
+        }
+
+        .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, .8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            gap: 6px;
+        }
+
+        /* ========== 切换按钮（Switch） ========== */
+        .w-switch {
+            position: relative;
+            display: inline-block;
+            width: 32px;
+            height: 16px;
+        }
+
+        .w-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .w-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            transition: .3s;
+            border-radius: 16px;
+        }
+
+        .w-slider:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked+.w-slider {
+            background-color: #67c23a;
+        }
+
+        input:checked+.w-slider:before {
+            transform: translateX(16px);
+        }
+
+        .weather-layer-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, .03);
+            font-size: 13px;
+            color: rgba(255, 255, 255, .8);
+        }
+
+        /* ========== 底部时间轴组件 ========== */
+        .timeline-box {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            width: 500px;
+            background: rgba(10, 22, 40, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 8px;
+            padding: 12px 20px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, .5);
+            display: none;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .tl-play {
+            font-size: 24px;
+            cursor: pointer;
+            color: #409eff;
+            transition: .2s;
+        }
+
+        .tl-play:hover {
+            color: #66b1ff;
+        }
+
+        .tl-slider-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tl-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(255, 255, 255, .5);
+            margin-bottom: 6px;
+        }
+
+        .tl-label span.curr {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .tl-input {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, .2);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .tl-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #409eff;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 6px rgba(0, 0, 0, .3);
+        }
+
+        /* ========== 主体（全屏地图） ========== */
+        .main-body {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #mapContainer {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        /* ========== 左侧搜索栏 ========== */
+        .search-bar {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .search-bar input {
+            width: 220px;
+            height: 34px;
+            background: rgba(10, 22, 40, 0.88);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 4px 0 0 4px;
+            color: #fff;
+            padding: 0 12px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        .search-bar input::placeholder {
+            color: rgba(255, 255, 255, .35);
+        }
+
+        .search-bar input:focus {
+            border-color: #409eff;
+        }
+
+        .search-bar button {
+            width: 34px;
+            height: 34px;
+            background: rgba(10, 22, 40, 0.88);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-left: none;
+            border-radius: 0 4px 4px 0;
+            color: rgba(255, 255, 255, .6);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .2s;
+        }
+
+        .search-bar button:hover {
+            color: #409eff;
+        }
+
+        /* ========== 左侧浮动面板 ========== */
+        .left-panels {
+            position: absolute;
+            top: 56px;
+            left: 12px;
+            z-index: 50;
+            width: 240px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: calc(100% - 120px);
+            overflow-y: auto;
+        }
+
+        .float-panel {
+            background: rgba(10, 22, 40, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .4);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            height: 36px;
+            cursor: pointer;
+            user-select: none;
+            transition: background .2s;
+        }
+
+        .panel-header:hover {
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .panel-header .title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-header .title .tag {
+            background: linear-gradient(135deg, #f7b733, #fc4a1a);
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .panel-header .toggle-arrows {
+            display: flex;
+            gap: 2px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, .4);
+        }
+
+        .panel-body {
+            max-height: 260px;
+            overflow-y: auto;
+            transition: max-height .3s ease;
+        }
+
+        .panel-body.collapsed {
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        /* 空域列表项 */
+        .airspace-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            cursor: pointer;
+            transition: background .15s;
+            border-bottom: 1px solid rgba(255, 255, 255, .03);
+        }
+
+        .airspace-item:hover {
+            background: rgba(64, 158, 255, .1);
+        }
+
+        .airspace-item.active {
+            background: rgba(64, 158, 255, .18);
+        }
+
+        .airspace-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 6px currentColor;
+        }
+
+        .airspace-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .airspace-info .name {
+            font-size: 13px;
+            color: rgba(255, 255, 255, .9);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .airspace-info .desc {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .35);
+            margin-top: 1px;
+        }
+
+        /* 廊道列表项 */
+        .corridor-item {
+            display: flex;
+            align-items: center;
+            padding: 9px 14px;
+            cursor: pointer;
+            transition: background .15s;
+            border-bottom: 1px solid rgba(255, 255, 255, .03);
+            gap: 8px;
+        }
+
+        .corridor-item:hover {
+            background: rgba(64, 158, 255, .1);
+        }
+
+        .corridor-item .c-icon {
+            font-size: 16px;
+            color: rgba(255, 255, 255, .4);
+            flex-shrink: 0;
+        }
+
+        .corridor-item .c-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .corridor-item .c-name {
+            font-size: 13px;
+            color: rgba(255, 255, 255, .85);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .corridor-item .c-meta {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .35);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 2px;
+        }
+
+        .corridor-item .c-status {
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .c-status.on {
+            background: rgba(103, 194, 58, .2);
+            color: #67c23a;
+        }
+
+        .c-status.off {
+            background: rgba(144, 147, 153, .15);
+            color: #909399;
+        }
+
+        .corridor-item .c-arrow {
+            font-size: 14px;
+            color: rgba(255, 255, 255, .25);
+            flex-shrink: 0;
+        }
+
+        /* ========== 右侧浮动面板 ========== */
+        .right-panels {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 50;
+            width: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: calc(100% - 80px);
+        }
+
+        .right-panel {
+            background: rgba(10, 22, 40, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .4);
+        }
+
+        .rp-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+            height: 34px;
+        }
+
+        .rp-header .rp-tag {
+            background: linear-gradient(135deg, #409eff, #1a73e8);
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .rp-body {
+            padding: 8px;
+        }
+
+        .rp-thumb {
+            width: 100%;
+            height: 110px;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            background: #1a2a40;
+        }
+
+        .rp-thumb .placeholder-map {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a3050, #0d1f38);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, .25);
+        }
+
+        .rp-thumb .overlay-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 6px 8px;
+            background: linear-gradient(transparent, rgba(0, 0, 0, .7));
+            font-size: 11px;
+            color: rgba(255, 255, 255, .8);
+        }
+
+        .task-list,
+        .alert-list {
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .task-item,
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background .15s;
+            margin-bottom: 2px;
+        }
+
+        .task-item:hover,
+        .alert-item:hover {
+            background: rgba(255, 255, 255, .05);
+        }
+
+        .task-item .t-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #67c23a;
+            flex-shrink: 0;
+            box-shadow: 0 0 4px #67c23a;
+        }
+
+        .task-item .t-info,
+        .alert-item .a-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-item .t-name,
+        .alert-item .a-name {
+            font-size: 12px;
+            color: rgba(255, 255, 255, .8);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .task-item .t-time,
+        .alert-item .a-time {
+            font-size: 10px;
+            color: rgba(255, 255, 255, .3);
+        }
+
+        .alert-item .a-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .a-dot.warn {
+            background: #e6a23c;
+            box-shadow: 0 0 4px #e6a23c;
+        }
+
+        .a-dot.error {
+            background: #f56c6c;
+            box-shadow: 0 0 4px #f56c6c;
+        }
+
+        /* ========== 底部工具栏 ========== */
+        .bottom-toolbar {
+            position: absolute;
+            bottom: 16px;
+            right: 40px;
+            /* 移动到右下角并避开右侧面板 */
+            z-index: 50;
+            display: flex;
+            gap: 4px;
+            background: rgba(10, 22, 40, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 8px;
+            padding: 6px 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, .5);
+        }
+
+        .tb-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: rgba(255, 255, 255, .6);
+            transition: all .2s;
+            position: relative;
+        }
+
+        .tb-btn:hover {
+            background: rgba(255, 255, 255, .1);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .tb-btn.active {
+            background: rgba(64, 158, 255, .2);
+            color: #409eff;
+        }
+
+        .tb-btn::after {
+            content: attr(data-tip);
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, .85);
+            color: #fff;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s;
+        }
+
+        .tb-btn:hover::after {
+            opacity: 1;
+        }
+
+        /* 地图上的廊道模拟几何 */
+        .leaflet-tooltip.corridor-label {
+            background: rgba(10, 22, 40, 0.85) !important;
+            border: 1px solid rgba(255, 255, 255, .15) !important;
+            color: #fff !important;
+            font-size: 11px !important;
+            padding: 3px 8px !important;
+            border-radius: 4px !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .4) !important;
+        }
+
+        .leaflet-tooltip.corridor-label::before {
+            display: none !important;
+        }
+
+        /* 空域图层样式 */
+        .airspace-layer {
+            opacity: 0.3;
+        }
+
+        /* ========== 弹窗样式覆盖 ========== */
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+            background: rgba(10, 22, 40, 0.95);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+        }
+
+        .leaflet-popup-content {
+            margin: 12px;
+            min-width: 180px;
+        }
+
+        .popup-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #409eff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .popup-row span:first-child {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .forbidden-zone-layer {
+            animation: warningBlink 2s infinite alternate;
+        }
+
+        @keyframes warningBlink {
+            0% {
+                fill-opacity: 0.3;
+            }
+
+            100% {
+                fill-opacity: 0.8;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <!-- 统一提取的顶部导航组件 -->
+        <script src="assets/js/header.js"></script>
+
+        <!-- 主体：全屏地图 -->
+        <div class="main-body">
+            <div id="mapContainer"></div>
+
+            <!-- 搜索栏 -->
+            <div class="search-bar">
+                <input type="text" placeholder="搜索位置、廊道、区域名..." id="globalSearch">
+                <button onclick="doSearch()"><i class="ri-search-line"></i></button>
+            </div>
+
+            <!-- 左侧面板 -->
+            <div class="left-panels">
+                <!-- 气象图层控制 -->
+                <div class="float-panel">
+                    <div class="panel-header" onclick="togglePanel('weatherBody')">
+                        <div class="title"><span class="tag"
+                                style="background: linear-gradient(135deg, #00c6ff, #0072ff);">气象图层控制</span></div>
+                        <div class="toggle-arrows">◂ ▸</div>
+                    </div>
+                    <div class="panel-body" id="weatherBody">
+                        <div class="weather-layer-item">
+                            <span>全局温度 (热力图)</span>
+                            <label class="w-switch"><input type="checkbox" id="layerTemp"
+                                    onchange="updateWeather()"><span class="w-slider"></span></label>
+                        </div>
+                        <div class="weather-layer-item">
+                            <span>全局降水 (色带)</span>
+                            <label class="w-switch"><input type="checkbox" id="layerRain"
+                                    onchange="updateWeather()"><span class="w-slider"></span></label>
+                        </div>
+                        <div class="weather-layer-item">
+                            <span>阵风风速 (流场)</span>
+                            <label class="w-switch"><input type="checkbox" id="layerWind"
+                                    onchange="updateWeather()"><span class="w-slider"></span></label>
+                        </div>
+                        <div class="weather-layer-item" style="background: rgba(245,108,108,0.1);">
+                            <span style="color: #f56c6c; font-weight:bold;">气象禁飞区渲染</span>
+                            <label class="w-switch"><input type="checkbox" id="layerNoFly"
+                                    onchange="updateWeather()"><span class="w-slider"></span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 空域列表 -->
+                <div class="float-panel">
+                    <div class="panel-header" onclick="togglePanel('airspaceBody')">
+                        <div class="title"><span class="tag">空域列表</span></div>
+                        <div class="toggle-arrows">◂ ▸</div>
+                    </div>
+                    <div class="panel-body" id="airspaceBody"></div>
+                </div>
+
+                <!-- 廊道列表 -->
+                <div class="float-panel">
+                    <div class="panel-header" onclick="togglePanel('corridorBody')">
+                        <div class="title"><span class="tag">廊道列表</span></div>
+                        <div class="toggle-arrows">◂ ▸</div>
+                    </div>
+                    <div class="panel-body" id="corridorBody"></div>
+                </div>
+
+                <!-- 民航与通航图层 -->
+                <div class="float-panel">
+                    <div class="panel-header" onclick="togglePanel('aviationBody')">
+                        <div class="title"><span class="tag"
+                                style="background: linear-gradient(135deg, #1d976c, #93f9b9); color:#000;">民航与通航图层</span>
+                        </div>
+                        <div class="toggle-arrows">◂ ▸</div>
+                    </div>
+                    <div class="panel-body" id="aviationBody">
+                        <div class="weather-layer-item">
+                            <span>显示民航航路 (全国)</span>
+                            <label class="w-switch"><input type="checkbox" id="layerCivil"
+                                    onchange="updateAviation()"><span class="w-slider"></span></label>
+                        </div>
+                        <div class="weather-layer-item">
+                            <span>显示通航航路 (全国)</span>
+                            <label class="w-switch"><input type="checkbox" id="layerGeneral"
+                                    onchange="updateAviation()"><span class="w-slider"></span></label>
+                        </div>
+                        <div class="weather-layer-item" style="background: rgba(245,108,108,0.1);">
+                            <span style="color: #f56c6c; font-weight:bold;">显示禁止通行区域</span>
+                            <label class="w-switch"><input type="checkbox" id="layerForbidden"
+                                    onchange="updateAviation()"><span class="w-slider"></span></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧面板 -->
+            <div class="right-panels">
+                <!-- 在飞任务列表 -->
+                <div class="right-panel">
+                    <div class="rp-header">
+                        <span class="rp-tag">在飞任务列表</span>
+                    </div>
+                    <div class="rp-body">
+                        <div class="task-list" id="taskList"></div>
+                    </div>
+                </div>
+
+                <!-- 告警列表 -->
+                <div class="right-panel">
+                    <div class="rp-header">
+                        <span class="rp-tag" style="background:linear-gradient(135deg,#e6a23c,#f56c6c);">告警列表</span>
+                    </div>
+                    <div class="rp-body">
+                        <div class="alert-list" id="alertList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部工具栏 -->
+            <div class="bottom-toolbar">
+                <div class="tb-btn" data-tip="测距工具" onclick="tbClick(this)"><i class="ri-ruler-line"></i></div>
+                <div class="tb-btn" data-tip="标注工具" onclick="tbClick(this)"><i class="ri-quill-pen-line"></i></div>
+                <div class="tb-btn" data-tip="人员定位" onclick="tbClick(this)"><i class="ri-group-line"></i></div>
+                <div class="tb-btn" data-tip="飞行器追踪" onclick="tbClick(this)"><i class="ri-flight-takeoff-fill"></i>
+                </div>
+                <div class="tb-btn" data-tip="截图" onclick="tbClick(this)"><i class="ri-screenshot-line"></i></div>
+                <div class="tb-btn" data-tip="网格显示" onclick="tbClick(this)"><i class="ri-grid-line"></i></div>
+            </div>
+
+            <!-- 气象时间轴 -->
+            <div class="timeline-box">
+                <i class="ri-play-circle-fill tl-play" id="tlPlayBtn" onclick="toggleTimePlay()"></i>
+                <div class="tl-slider-wrap">
+                    <div class="tl-label">
+                        <span>当前实况 (0h)</span>
+                        <span class="curr" id="tlDisplay">当前预测: 实况</span>
+                        <span>未来预报 (+24h)</span>
+                    </div>
+                    <input type="range" class="tl-input" id="timeSlider" min="0" max="24" value="0" step="1"
+                        oninput="changeTime()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= 初始化地图 =================
+        const map = L.map('mapContainer', {
+            center: [30.25, 120.15],
+            zoom: 10,
+            zoomControl: false
+        });
+
+        // 定义不同的图层
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri',
+            maxZoom: 19
+        });
+
+        const amapLayer = L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+            subdomains: '1234',
+            maxZoom: 18
+        });
+
+        const amapVectorLayer = L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}', {
+            subdomains: '1234',
+            maxZoom: 18
+        });
+
+        satelliteLayer.addTo(map);
+
+        // 高德注记覆盖层
+        const labelsLayer = L.tileLayer('https://wprd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=8&ltype=4', {
+            subdomains: '1234',
+            maxZoom: 18,
+            transparent: true,
+            opacity: 0.85
+        }).addTo(map);
+
+        // 缩放控件
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // 图层控制组件
+        const baseMaps = {
+            "卫星影像": satelliteLayer,
+            "高德地图": amapLayer,
+            "街道地图": amapVectorLayer
+        };
+        const overlayMaps = {
+            "地名标注": labelsLayer
+        };
+        L.control.layers(baseMaps, overlayMaps, { position: 'bottomright' }).addTo(map);
+
+        // ================= Mock 数据 =================
+        const AIRSPACES = [
+            { name: 'W类空域（0-120）', desc: 'Class W Airspace', color: '#e6a23c', bounds: [[30.15, 119.95], [30.35, 120.35]], height: '0-120m', type: '限飞区', level: '中级限制', agency: '杭州空管站', activeTime: '全天' },
+            { name: 'G类空域（120-300）', desc: 'Class G Airspace', color: '#67c23a', bounds: [[30.10, 120.00], [30.40, 120.30]], height: '120-300m', type: '管制区', level: '低级限制', agency: '浙江区域管制', activeTime: '08:00 - 18:00' },
+            { name: 'D/E类空域（300-1000）', desc: 'Class D/E Airspace', color: '#f56c6c', bounds: [[30.05, 119.90], [30.45, 120.40]], height: '300-1000m', type: '禁飞区', level: '绝对禁飞', agency: '东部战区空军', activeTime: '永久' },
+            { name: 'D/E类空域（1000-3000）', desc: 'Class D/E Airspace', color: '#9c27b0', bounds: [[30.00, 119.85], [30.50, 120.45]], height: '1000-3000m', type: '管制区', level: '高度管制', agency: '华东空管局', activeTime: '任务期生效' },
+            { name: 'D类空域（3000-6000）', desc: 'Class D Airspace', color: '#409eff', bounds: [[29.95, 119.80], [30.55, 120.50]], height: '3000-6000m', type: '限飞区', level: '航路避让', agency: '华东空管局', activeTime: '全天' }
+        ];
+
+        const CORRIDORS = [
+            { id: 1, name: '富阳辅助廊道', status: '生效中', points: [[29.80, 119.50], [30.10, 120.00]], color: '#32CD32' },
+            { id: 2, name: '西湖测试廊道', status: '生效中', points: [[30.15, 119.60], [30.15, 120.12]], color: '#32CD32' },
+            { id: 3, name: '临安-余杭段', status: '生效中', points: [[30.25, 119.20], [30.35, 119.80]], color: '#32CD32' },
+            { id: 4, name: '未来科技城主廊道', status: '生效中', points: [[30.30, 119.40], [30.30, 120.10]], color: '#32CD32' },
+            { id: 5, name: '良渚观光走廊', status: '生效中', points: [[30.38, 119.60], [30.40, 120.15]], color: '#32CD32' },
+            { id: 6, name: '临平工业园线', status: '生效中', points: [[30.45, 120.00], [30.45, 120.50]], color: '#32CD32' },
+            { id: 7, name: '下沙物流专线', status: '生效中', points: [[30.32, 120.32], [30.25, 120.65]], color: '#32CD32' },
+            { id: 8, name: '钱塘江巡游廊道', status: '生效中', points: [[30.18, 120.25], [30.25, 120.40], [30.10, 120.70]], color: '#32CD32' }
+        ];
+
+        const N = {
+            n1: [31.00, 120.00], n2: [31.20, 120.50], n3: [31.00, 121.00],
+            n4: [30.50, 119.50], n5: [30.50, 120.20], n6: [30.60, 120.80],
+            n7: [30.20, 119.00], n8: [30.23, 120.43], n9: [30.00, 121.00],
+            n10: [29.50, 119.50], n11: [29.60, 120.00], n12: [29.20, 120.50],
+            n13: [28.50, 119.80], n14: [28.00, 120.60]
+        };
+
+        const CIVIL_ROUTES = [
+            { name: '民航网段1 (A470)', points: [N.n1, N.n5, N.n8, N.n12, N.n14], minHeight: '6000m', length: '350km' },
+            { name: '民航网段2 (B221)', points: [N.n4, N.n5, N.n6, N.n3], minHeight: '7500m', length: '200km' },
+            { name: '民航网段3 (G330)', points: [N.n7, N.n10, N.n13], minHeight: '5400m', length: '280km' },
+            { name: '民航网段4 (V2)', points: [N.n2, N.n5, N.n11, N.n13], minHeight: '8200m', length: '310km' },
+            { name: '民航网段5 (W54)', points: [N.n6, N.n8, N.n10], minHeight: '6000m', length: '180km' },
+            { name: '民航网段6 (H112)', points: [N.n8, N.n9], minHeight: '6800m', length: '90km' },
+            { name: '民航网段7 (W10)', points: [N.n1, N.n4, N.n7], minHeight: '7000m', length: '150km' },
+            { name: '民航网段8 (R40)', points: [N.n3, N.n9, N.n12], minHeight: '6000m', length: '260km' }
+        ];
+
+        const GENERAL_ROUTES = [
+            { name: '通航低空A段', points: [N.n5, N.n4], minHeight: '300m', length: '75km' },
+            { name: '通航低空B段', points: [N.n8, N.n5], minHeight: '200m', length: '35km' },
+            { name: '通航低空C段', points: [N.n8, N.n11], minHeight: '400m', length: '80km' },
+            { name: '通航低空D段', points: [N.n10, N.n11], minHeight: '250m', length: '40km' },
+            { name: '通航低空E段', points: [N.n11, N.n12], minHeight: '350m', length: '50km' },
+            { name: '通航低空F段', points: [N.n7, N.n4], minHeight: '500m', length: '60km' },
+            { name: '通航低空G段', points: [N.n13, N.n12], minHeight: '300m', length: '90km' },
+            { name: '城市专环线', points: [[30.30, 120.30], [30.40, 120.25], [30.35, 120.15]], minHeight: '150m', length: '25km' }
+        ];
+
+        const FORBIDDEN_ZONES = [
+            { name: '萧山国际机场禁飞区', bounds: [[30.20, 120.38], [30.28, 120.48]] },
+            { name: '笕桥机场军用管制区', bounds: [[30.31, 120.21], [30.35, 120.25]] },
+            { name: '西湖风景核心保护区', bounds: [[30.23, 120.12], [30.26, 120.15]] }
+        ];
+
+        // 动态计算航线与廊道交点的禁飞区
+        function _getIntersect(p1, p2, p3, p4) {
+            const y1 = p1[0], x1 = p1[1];
+            const y2 = p2[0], x2 = p2[1];
+            const y3 = p3[0], x3 = p3[1];
+            const y4 = p4[0], x4 = p4[1];
+            const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+            if (denom === 0) return null;
+            const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+            const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
+            if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+                return [y1 + t * (y2 - y1), x1 + t * (x2 - x1)];
+            }
+            return null;
+        }
+
+        const THRESHOLD = 0.008; // 约800米半径
+        CORRIDORS.forEach(c => {
+            CIVIL_ROUTES.forEach(cr => {
+                for (let i = 0; i < c.points.length - 1; i++) {
+                    for (let j = 0; j < cr.points.length - 1; j++) {
+                        const pt = _getIntersect(c.points[i], c.points[i + 1], cr.points[j], cr.points[j + 1]);
+                        if (pt) {
+                            FORBIDDEN_ZONES.push({
+                                name: `冲突: ${c.name} & ${cr.name}`,
+                                bounds: [[pt[0] - THRESHOLD, pt[1] - THRESHOLD], [pt[0] + THRESHOLD, pt[1] + THRESHOLD]]
+                            });
+                        }
+                    }
+                }
+            });
+            GENERAL_ROUTES.forEach(gr => {
+                for (let i = 0; i < c.points.length - 1; i++) {
+                    for (let j = 0; j < gr.points.length - 1; j++) {
+                        const pt = _getIntersect(c.points[i], c.points[i + 1], gr.points[j], gr.points[j + 1]);
+                        if (pt) {
+                            FORBIDDEN_ZONES.push({
+                                name: `冲突: ${c.name} & ${gr.name}`,
+                                bounds: [[pt[0] - THRESHOLD, pt[1] - THRESHOLD], [pt[0] + THRESHOLD, pt[1] + THRESHOLD]]
+                            });
+                        }
+                    }
+                }
+            });
+        });
+
+        const TASKS = [
+            { name: '杭千廊道巡检任务 #A103', time: '14:22 起飞', type: 'patrol' },
+            { name: '西安段测试飞行 #B207', time: '13:50 起飞', type: 'test' },
+            { name: '杭温段航路验证 #C018', time: '12:30 起飞', type: 'verify' }
+        ];
+
+        const ALERTS = [
+            { name: '廊道#3 偏航告警', time: '14:18', level: 'warn' },
+            { name: '空域入侵警报 - D/E区', time: '14:05', level: 'error' },
+            { name: '气象预警 - 杭州东部', time: '13:42', level: 'warn' },
+            { name: '电池低电量 - 飞行器#B207', time: '13:30', level: 'warn' }
+        ];
+
+        // ================= 渲染空域列表 =================
+        let airspaceLayers = {};
+        function renderAirspaces() {
+            let h = '';
+            AIRSPACES.forEach((a, i) => {
+                h += `<div class="airspace-item" onclick="toggleAirspace(${i})" id="as-${i}">
+                    <div class="airspace-dot" style="color:${a.color};background:${a.color};"></div>
+                    <div class="airspace-info">
+                        <div class="name">${a.name}</div>
+                        <div class="desc">${a.desc}</div>
+                    </div>
+                </div>`;
+
+                // 实例化空域矩形但不将其添加到主地图（默认隐藏，删除中间那些默认绘制的虚线）
+                const rect = L.rectangle(a.bounds, {
+                    color: a.color,
+                    weight: 2,
+                    fillColor: a.color,
+                    fillOpacity: 0.15,
+                    dashArray: '6,4'
+                });
+
+                const popupHtml = `
+                    <div class="popup-title">${a.name}</div>
+                    <div class="popup-row"><span>空域类型：</span><span>${a.type}</span></div>
+                    <div class="popup-row"><span>限飞等级：</span><span>${a.level}</span></div>
+                    <div class="popup-row"><span>管制单位：</span><span>${a.agency}</span></div>
+                    <div class="popup-row"><span>生效时间：</span><span>${a.activeTime}</span></div>
+                    <div class="popup-row"><span>高度范围：</span><span>${a.height}</span></div>
+                `;
+                rect.bindPopup(popupHtml);
+                // rect.bindTooltip(a.name, { className: 'corridor-label', sticky: true });
+                airspaceLayers[i] = rect;
+            });
+            document.getElementById('airspaceBody').innerHTML = h;
+        }
+
+        function toggleAirspace(idx) {
+            const el = document.getElementById('as-' + idx);
+            const layer = airspaceLayers[idx];
+            if (el.classList.contains('active')) {
+                el.classList.remove('active');
+                map.removeLayer(layer);
+            } else {
+                el.classList.add('active');
+                layer.addTo(map);
+                map.fitBounds(layer.getBounds().pad(0.1), { duration: 1 });
+            }
+        }
+
+        // ================= 渲染廊道列表 =================
+        let corridorLayers = {};
+        function renderCorridors() {
+            let h = '';
+            CORRIDORS.forEach((c, i) => {
+                const statusClass = c.status === '生效中' ? 'on' : 'off';
+                h += `<div class="corridor-item" onclick="focusCorridor(${i})">
+                    <i class="ri-route-line c-icon"></i>
+                    <div class="c-info">
+                        <div class="c-name">${c.name}</div>
+                        <div class="c-meta">
+                            <span class="c-status ${statusClass}">${c.status}</span>
+                        </div>
+                    </div>
+                    <i class="ri-arrow-right-s-line c-arrow"></i>
+                </div>`;
+
+                // 在地图上绘制廊道线（取消原本做矩形的模拟，改为细线）
+                const polyline = L.polyline(c.points, {
+                    color: c.color, // 统一的绿色
+                    weight: 3, // 提升粗细，使其更明显，但依然小于通航(4)
+                    opacity: 1,
+                    lineJoin: 'miter',
+                    lineCap: 'butt' // 强制平切两端
+                }).addTo(map);
+
+                polyline.bindTooltip(c.name, {
+                    className: 'corridor-label',
+                    permanent: false,
+                    sticky: true
+                });
+
+                corridorLayers[i] = polyline;
+            });
+            document.getElementById('corridorBody').innerHTML = h;
+        }
+
+        function focusCorridor(idx) {
+            const layer = corridorLayers[idx];
+            if (layer) {
+                map.flyToBounds(layer.getBounds().pad(0.5), { duration: 1.2 });
+
+                // 高亮闪烁
+                const origWeight = 3; // 与绘制时保持一致
+                let count = 0;
+                const blink = setInterval(() => {
+                    layer.setStyle({ weight: count % 2 === 0 ? 6 : origWeight, opacity: count % 2 === 0 ? 1 : 0.6 });
+                    count++;
+                    if (count >= 6) {
+                        clearInterval(blink);
+                        layer.setStyle({ weight: origWeight, opacity: 0.6 });
+                    }
+                }, 300);
+            }
+        }
+
+        // ================= 渲染任务列表 =================
+        function renderTasks() {
+            let h = '';
+            TASKS.forEach(t => {
+                h += `<div class="task-item">
+                    <div class="t-dot"></div>
+                    <div class="t-info">
+                        <div class="t-name">${t.name}</div>
+                        <div class="t-time">${t.time}</div>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('taskList').innerHTML = h;
+        }
+
+        // ================= 渲染告警列表 =================
+        function renderAlerts() {
+            let h = '';
+            ALERTS.forEach(a => {
+                h += `<div class="alert-item">
+                    <div class="a-dot ${a.level}"></div>
+                    <div class="a-info">
+                        <div class="a-name">${a.name}</div>
+                        <div class="a-time">${a.time}</div>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('alertList').innerHTML = h;
+        }
+
+        // ================= 面板折叠 =================
+        function togglePanel(id) {
+            const body = document.getElementById(id);
+            body.classList.toggle('collapsed');
+        }
+
+        // ================= 底部工具栏 =================
+        function tbClick(el) {
+            el.classList.toggle('active');
+        }
+
+        // ================= 民航与通航层 =================
+        let civilLayerGroup = L.layerGroup();
+        let generalLayerGroup = L.layerGroup();
+        let forbiddenLayerGroup = L.layerGroup();
+
+        function initAviationLayers() {
+            // 民航航路渲染 (最粗天蓝色带箭头)
+            CIVIL_ROUTES.forEach(route => {
+                const poly = L.polyline(route.points, { color: '#00bfff', weight: 6, opacity: 0.8, smoothFactor: 1 });
+                const popup = `
+                    <div class="popup-title"><i class="ri-plane-fill"></i> 民航航路: ${route.name}</div>
+                    <div class="popup-row"><span>最低高度：</span><span>${route.minHeight}</span></div>
+                    <div class="popup-row"><span>航路长度：</span><span>${route.length}</span></div>
+                `;
+                poly.bindPopup(popup);
+                poly.bindTooltip(route.name, { className: 'corridor-label', sticky: true });
+                civilLayerGroup.addLayer(poly);
+
+                // 添加方向箭头装饰
+                if (window.L.polylineDecorator) {
+                    const arrowMarker = L.polylineDecorator(poly, {
+                        patterns: [
+                            { offset: '15%', repeat: '40%', symbol: L.Symbol.arrowHead({ pixelSize: 12, polygon: false, pathOptions: { stroke: true, color: '#00bfff', weight: 3 } }) }
+                        ]
+                    });
+                    civilLayerGroup.addLayer(arrowMarker);
+                }
+
+                // 线段交点实体化（实心点）
+                route.points.forEach(pt => {
+                    const dot = L.circleMarker(pt, { radius: 5, fillColor: '#00bfff', fillOpacity: 1, color: '#fff', weight: 1.5 });
+                    dot.bindTooltip(route.name + ' 节点', { className: 'corridor-label' });
+                    civilLayerGroup.addLayer(dot);
+                });
+            });
+
+            // 通航航路渲染 (中粗亮红色)
+            GENERAL_ROUTES.forEach(route => {
+                const poly = L.polyline(route.points, { color: '#ff3333', weight: 4, opacity: 0.8 });
+                const popup = `
+                    <div class="popup-title"><i class="ri-flight-takeoff-line"></i> 通航航线: ${route.name}</div>
+                    <div class="popup-row"><span>最低高度：</span><span>${route.minHeight}</span></div>
+                    <div class="popup-row"><span>航路长度：</span><span>${route.length}</span></div>
+                `;
+                poly.bindPopup(popup);
+                poly.bindTooltip(route.name, { className: 'corridor-label', sticky: true });
+                generalLayerGroup.addLayer(poly);
+
+                // 线段交点实体化（实心点）
+                route.points.forEach(pt => {
+                    const dot = L.circleMarker(pt, { radius: 4, fillColor: '#ff3333', fillOpacity: 1, color: '#fff', weight: 1.5 });
+                    dot.bindTooltip(route.name + ' 节点', { className: 'corridor-label' });
+                    generalLayerGroup.addLayer(dot);
+                });
+            });
+
+            // 禁止通行区域渲染 (交叉冲突面)
+            FORBIDDEN_ZONES.forEach(zone => {
+                const rect = L.rectangle(zone.bounds, {
+                    color: '#f56c6c',
+                    weight: 2,
+                    fillColor: '#f56c6c',
+                    fillOpacity: 0.6,
+                    className: 'forbidden-zone-layer'
+                });
+                const popup = `
+                    <div class="popup-title" style="color:#f56c6c;"><i class="ri-error-warning-fill"></i> 禁止通行区域</div>
+                    <div class="popup-row"><span>归属：</span><span style="color:#fff;">${zone.name}</span></div>
+                    <div class="popup-row"><span>状态：</span><span>禁止廊道节点穿行</span></div>
+                `;
+                rect.bindPopup(popup);
+                rect.bindTooltip("禁止通行区域", { className: 'corridor-label', sticky: true });
+                forbiddenLayerGroup.addLayer(rect);
+            });
+        }
+
+        function updateAviation() {
+            if (document.getElementById('layerCivil').checked) {
+                map.addLayer(civilLayerGroup);
+            } else {
+                map.removeLayer(civilLayerGroup);
+            }
+
+            if (document.getElementById('layerGeneral').checked) {
+                map.addLayer(generalLayerGroup);
+            } else {
+                map.removeLayer(generalLayerGroup);
+            }
+
+            if (document.getElementById('layerForbidden').checked) {
+                map.addLayer(forbiddenLayerGroup);
+            } else {
+                map.removeLayer(forbiddenLayerGroup);
+            }
+        }
+
+        initAviationLayers();
+
+        // ================= 搜索 =================
+        function doSearch() {
+            const kw = document.getElementById('globalSearch').value.trim();
+            if (!kw) return;
+
+            // 搜索廊道
+            const found = CORRIDORS.findIndex(c => c.name.includes(kw));
+            if (found >= 0) {
+                focusCorridor(found);
+            }
+        }
+
+        document.getElementById('globalSearch').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') doSearch();
+        });
+
+        // ================= 初始化 =================
+        renderAirspaces();
+        renderCorridors();
+        renderTasks();
+        renderAlerts();
+
+        // ================= 气象时空联动与 Canvas/WebGL 模拟层 =================
+        let timePlayTimer = null;
+        let currentTimeHour = 0;
+        let weatherConfig = {
+            temp: false, rain: false, wind: false, noFly: false
+        };
+
+        function updateWeather() {
+            weatherConfig.temp = document.getElementById('layerTemp').checked;
+            weatherConfig.rain = document.getElementById('layerRain').checked;
+            weatherConfig.wind = document.getElementById('layerWind').checked;
+            weatherConfig.noFly = document.getElementById('layerNoFly').checked;
+
+            // 任意开关开启则显示时间轴
+            const anyActive = weatherConfig.temp || weatherConfig.rain || weatherConfig.wind || weatherConfig.noFly;
+            const tb = document.querySelector('.timeline-box');
+            if (tb) tb.style.display = anyActive ? 'flex' : 'none';
+
+            // 风场动画开关
+            if (weatherConfig.wind) {
+                startWindAnimation();
+            } else {
+                stopWindAnimation();
+            }
+
+            if (window.weatherLayer) window.weatherLayer._update();
+        }
+
+        function toggleTimePlay() {
+            const btn = document.getElementById('tlPlayBtn');
+            if (timePlayTimer) {
+                clearInterval(timePlayTimer);
+                timePlayTimer = null;
+                btn.className = 'ri-play-circle-fill tl-play';
+            } else {
+                btn.className = 'ri-pause-circle-fill tl-play';
+                timePlayTimer = setInterval(() => {
+                    let val = parseInt(document.getElementById('timeSlider').value) + 1;
+                    if (val > 24) val = 0;
+                    document.getElementById('timeSlider').value = val;
+                    changeTime();
+                }, 1000);
+            }
+        }
+
+        function changeTime() {
+            currentTimeHour = parseInt(document.getElementById('timeSlider').value);
+            const disp = currentTimeHour === 0 ? '实况' : `+${currentTimeHour}小时`;
+            document.getElementById('tlDisplay').innerText = `当前预测: ${disp}`;
+            if (window.weatherLayer) window.weatherLayer._update();
+        }
+
+        // ========================= 气象网格模拟数据 =========================
+        // 定义若干个气象网格点（经度 / 纶度 / 基础气象结构）
+        // 每个网格点的实际数值会随时间轴变化
+        const WEATHER_GRID = [];
+        const gridRows = 8, gridCols = 10;
+        const latMin = 29.7, latMax = 30.7, lngMin = 119.5, lngMax = 121.0;
+        for (let r = 0; r < gridRows; r++) {
+            for (let c = 0; c < gridCols; c++) {
+                const lat = latMin + (latMax - latMin) * (r / (gridRows - 1));
+                const lng = lngMin + (lngMax - lngMin) * (c / (gridCols - 1));
+                WEATHER_GRID.push({
+                    lat, lng,
+                    // 基础温度（模拟地形差异）
+                    baseTemp: 12 + Math.sin(lat * 8) * 4 + Math.cos(lng * 6) * 5 + Math.random() * 3,
+                    // 基础降水
+                    baseRain: Math.max(0, Math.sin(lat * 12 + lng * 8) * 0.6 + Math.random() * 0.4),
+                    // 风向（弧度）
+                    windDir: Math.PI * (0.5 + Math.sin(lat * 5) * 0.3 + Math.cos(lng * 4) * 0.2),
+                    // 风速基础
+                    windSpeed: 3 + Math.abs(Math.sin(lat * 7 + lng * 5)) * 8
+                });
+            }
+        }
+
+        // 根据时间轴返回某网格点当前的气象值
+        function getGridValue(grid, hour) {
+            const t = hour / 24; // 0~1
+            return {
+                temp: grid.baseTemp + Math.sin(t * Math.PI * 2 + grid.lng) * 6,  // 温度波动
+                rain: Math.max(0, Math.min(1, grid.baseRain + Math.sin(t * Math.PI * 3 + grid.lat * 4) * 0.4)), // 降水波动
+                windDir: grid.windDir + Math.sin(t * Math.PI * 2) * 0.5,  // 风向源缓慢旋转
+                windSpeed: grid.windSpeed * (0.6 + Math.sin(t * Math.PI * 4 + grid.lat) * 0.4)  // 风速降动
+            };
+        }
+
+        // 气象渲染 Canvas Layer
+        const WeatherCanvasLayer = L.Layer.extend({
+            onAdd: function (map) {
+                this._map = map;
+                this._canvas = L.DomUtil.create('canvas', 'leaflet-weather-layer');
+                this._canvas.style.position = 'absolute';
+                this._canvas.style.pointerEvents = 'none';
+                this._canvas.style.zIndex = 400;
+                map.getPanes().overlayPane.appendChild(this._canvas);
+                map.on('moveend viewreset resize zoomend', this._update, this);
+                this._update();
+            },
+            onRemove: function (map) {
+                L.DomUtil.remove(this._canvas);
+                map.off('moveend viewreset resize zoomend', this._update, this);
+            },
+            _update: function () {
+                if (!this._map) return;
+                const size = this._map.getSize();
+                this._canvas.width = size.x;
+                this._canvas.height = size.y;
+                L.DomUtil.setPosition(this._canvas, this._map.containerPointToLayerPoint([0, 0]));
+                this.render();
+            },
+            render: function () {
+                const ctx = this._canvas.getContext('2d');
+                const W = this._canvas.width, H = this._canvas.height;
+                ctx.clearRect(0, 0, W, H);
+
+                // --- 温度/降水：像素级 IDW 连续区域覆盖 ---
+                if (weatherConfig.temp || weatherConfig.rain) {
+                    const SW = 160, SH = 120;
+                    const offscreen = document.createElement('canvas');
+                    offscreen.width = SW; offscreen.height = SH;
+                    const octx = offscreen.getContext('2d');
+                    const imgData = octx.createImageData(SW, SH);
+                    const pixels = imgData.data;
+
+                    const gridVals = WEATHER_GRID.map(g => ({
+                        pt: this._map.latLngToContainerPoint([g.lat, g.lng]),
+                        vals: getGridValue(g, currentTimeHour)
+                    }));
+
+                    for (let py = 0; py < SH; py++) {
+                        for (let px = 0; px < SW; px++) {
+                            const cx = (px / SW) * W;
+                            const cy = (py / SH) * H;
+                            let tSum = 0, rSum = 0, wTot = 0;
+                            for (let i = 0; i < gridVals.length; i++) {
+                                const gv = gridVals[i];
+                                const dx = cx - gv.pt.x, dy = cy - gv.pt.y;
+                                const w = 1 / (dx * dx + dy * dy + 0.01);
+                                tSum += gv.vals.temp * w;
+                                rSum += gv.vals.rain * w;
+                                wTot += w;
+                            }
+                            const temp = tSum / wTot;
+                            const rain = rSum / wTot;
+                            const base = (py * SW + px) * 4;
+
+                            if (weatherConfig.temp && weatherConfig.rain) {
+                                const norm = Math.max(0, Math.min(1, (temp - 5) / 30));
+                                let rv = norm > 0.5 ? 255 : Math.round(norm * 2 * 120);
+                                let gv2 = norm < 0.5 ? Math.round(norm * 2 * 210) : Math.round((1 - norm) * 2 * 210);
+                                let bv = norm < 0.5 ? Math.round(180 + (1 - norm * 2) * 75) : 0;
+                                bv = Math.min(255, bv + Math.round(rain * 130));
+                                rv = Math.max(0, rv - Math.round(rain * 70));
+                                pixels[base] = rv; pixels[base + 1] = gv2; pixels[base + 2] = bv;
+                                pixels[base + 3] = Math.round(148 + rain * 55);
+                            } else if (weatherConfig.temp) {
+                                const norm = Math.max(0, Math.min(1, (temp - 5) / 30));
+                                pixels[base] = norm > 0.5 ? 255 : Math.round(norm * 2 * 120);
+                                pixels[base + 1] = norm < 0.5 ? Math.round(norm * 2 * 210) : Math.round((1 - norm) * 2 * 210);
+                                pixels[base + 2] = norm < 0.5 ? Math.round(180 + (1 - norm * 2) * 75) : 0;
+                                pixels[base + 3] = 152;
+                            } else {
+                                pixels[base] = 20; pixels[base + 1] = 90; pixels[base + 2] = 255;
+                                pixels[base + 3] = Math.round(rain * 215);
+                            }
+                        }
+                    }
+
+                    octx.putImageData(imgData, 0, 0);
+                    ctx.save();
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.globalAlpha = 0.72;
+                    ctx.drawImage(offscreen, 0, 0, W, H);
+                    ctx.restore();
+                }
+
+                // --- 禁飞区覆盖 ---
+                if (weatherConfig.noFly) {
+                    ctx.lineCap = 'butt';
+                    CORRIDORS.forEach((c, idx) => {
+                        if (c.points.length < 2) return;
+                        const p1 = this._map.latLngToContainerPoint(c.points[0]);
+                        const p2 = this._map.latLngToContainerPoint(c.points[1]);
+                        const progress = ((currentTimeHour * 2) + Math.cos(idx) * 10) % 24 / 24;
+                        let progNorm = progress < 0 ? progress + 1 : progress;
+                        const activeP1 = { x: p1.x + (p2.x - p1.x) * progNorm, y: p1.y + (p2.y - p1.y) * progNorm };
+                        let endProg = progNorm + 0.3;
+                        if (endProg > 1) endProg = 1;
+                        const activeP2 = { x: p1.x + (p2.x - p1.x) * endProg, y: p1.y + (p2.y - p1.y) * endProg };
+                        ctx.beginPath();
+                        ctx.moveTo(activeP1.x, activeP1.y);
+                        ctx.lineTo(activeP2.x, activeP2.y);
+                        ctx.lineWidth = 30;
+                        ctx.strokeStyle = 'rgba(245, 108, 108, 0.9)';
+                        ctx.stroke();
+                    });
+                }
+            }
+        });
+        window.weatherLayer = new WeatherCanvasLayer();
+        window.weatherLayer.addTo(map);
+
+        // ========================= 风场流动粒子 =========================
+        let windCanvas = null, windCtx = null, windParticles = [], windRAF = null;
+
+        function initWindCanvas() {
+            if (windCanvas) return;
+            windCanvas = document.createElement('canvas');
+            windCanvas.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:401;';
+            document.getElementById('mapContainer').appendChild(windCanvas);
+            windCtx = windCanvas.getContext('2d');
+        }
+
+        function resizeWindCanvas() {
+            if (!windCanvas) return;
+            const container = document.getElementById('mapContainer');
+            windCanvas.width = container.clientWidth;
+            windCanvas.height = container.clientHeight;
+        }
+
+        // 初始化粒子群
+        function spawnParticles() {
+            windParticles = [];
+            const W = windCanvas.width, H = windCanvas.height;
+            for (let i = 0; i < 350; i++) {
+                windParticles.push({
+                    x: Math.random() * W,
+                    y: Math.random() * H,
+                    age: Math.floor(Math.random() * 80), // 随机初始年龄
+                    maxAge: 60 + Math.random() * 60
+                });
+            }
+        }
+
+        // 根据画布坐标在网格点中插値得到风向和风速
+        function getWindAtPoint(px, py, hour) {
+            let wdSum = 0, wsSum = 0, wTotal = 0;
+            WEATHER_GRID.forEach(g => {
+                const pt = map.latLngToContainerPoint([g.lat, g.lng]);
+                const dx = px - pt.x, dy = py - pt.y;
+                const dist = Math.sqrt(dx * dx + dy * dy) + 1;
+                const w = 1 / (dist * dist);
+                const { windDir, windSpeed } = getGridValue(g, hour);
+                wdSum += windDir * w;
+                wsSum += windSpeed * w;
+                wTotal += w;
+            });
+            return { dir: wdSum / wTotal, speed: wsSum / wTotal };
+        }
+
+        function animateWind() {
+            if (!windCanvas || !weatherConfig.wind) return;
+            const W = windCanvas.width, H = windCanvas.height;
+
+            // 正确的拖尾残留5：用 destination-out 将已绘内容透明化，不会引入深色覆盖
+            windCtx.save();
+            windCtx.globalCompositeOperation = 'destination-out';
+            windCtx.fillStyle = 'rgba(0,0,0,0.20)'; // 撦除强度 — 越大尾巴越短
+            windCtx.fillRect(0, 0, W, H);
+            windCtx.restore();
+
+            windParticles.forEach(p => {
+                const { dir, speed } = getWindAtPoint(p.x, p.y, currentTimeHour);
+                const vx = Math.cos(dir) * speed * 0.4;
+                const vy = Math.sin(dir) * speed * 0.4;
+
+                const lifeRatio = 1 - p.age / p.maxAge;
+                // 风色：低风速→青白色 / 高风速→鳖黄色
+                const spd = Math.min(1, speed / 12);
+                const sr = Math.round(100 + spd * 155);
+                const sg = Math.round(220 - spd * 80);
+                const sb = Math.round(255 - spd * 200);
+                const alpha = Math.min(0.92, lifeRatio * 1.4);
+
+                windCtx.beginPath();
+                windCtx.moveTo(p.x, p.y);
+                p.x += vx;
+                p.y += vy;
+                windCtx.lineTo(p.x, p.y);
+                windCtx.strokeStyle = `rgba(${sr},${sg},${sb},${alpha})`;
+                windCtx.lineWidth = 1.8;
+                windCtx.stroke();
+
+                p.age++;
+                if (p.age > p.maxAge || p.x < 0 || p.x > W || p.y < 0 || p.y > H) {
+                    p.x = Math.random() * W;
+                    p.y = Math.random() * H;
+                    p.age = 0;
+                    p.maxAge = 60 + Math.random() * 60;
+                }
+            });
+
+            windRAF = requestAnimationFrame(animateWind);
+        }
+
+        function startWindAnimation() {
+            if (windRAF) return;
+            initWindCanvas();
+            resizeWindCanvas();
+            spawnParticles();
+            animateWind();
+        }
+
+        function stopWindAnimation() {
+            if (windRAF) { cancelAnimationFrame(windRAF); windRAF = null; }
+            if (windCanvas && windCtx) windCtx.clearRect(0, 0, windCanvas.width, windCanvas.height);
+        }
+
+        // 地图移动后重置风场 canvas 尺寸
+        map.on('resize', resizeWindCanvas);
+
+        // 模拟飞行器位置标记
+        const droneIcon = L.divIcon({
+            className: 'drone-marker',
+            html: '<div style="width:12px;height:12px;background:#67c23a;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px #67c23a;"></div>',
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+        });
+
+        const drones = [
+            { lat: 30.20, lng: 120.18, name: '飞行器 A103' },
+            { lat: 30.27, lng: 120.22, name: '飞行器 B207' },
+            { lat: 30.15, lng: 120.12, name: '飞行器 C018' }
+        ];
+
+        drones.forEach(d => {
+            L.marker([d.lat, d.lng], { icon: droneIcon })
+                .addTo(map)
+                .bindTooltip(d.name, { className: 'corridor-label', direction: 'top', offset: [0, -10] });
+        });
+    </script>
+</body>
+
+</html>

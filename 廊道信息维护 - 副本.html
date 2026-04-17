@@ -1,0 +1,2367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CICORE 廊道管理运营平台 - 廊道信息维护</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            height: 100%;
+            overflow: hidden;
+            font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+            font-size: 14px;
+            color: #333;
+            background: #f0f2f5;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font-family: inherit;
+            font-size: inherit;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            padding: 12px 20px;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 14px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, .15);
+            animation: toastAni .3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast.success {
+            background: #67c23a;
+        }
+
+        .toast.warning {
+            background: #e6a23c;
+        }
+
+        .toast.error {
+            background: #f56c6c;
+        }
+
+        .toast.info {
+            background: #909399;
+        }
+
+        @keyframes toastAni {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        /* 布局 */
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .top-header {
+            height: 64px;
+            background: linear-gradient(90deg, #001529, #004098);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+            z-index: 100;
+            padding: 0 24px;
+            box-sizing: border-box;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .logo-box {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            gap: 16px;
+        }
+
+        .logo-box .brand {
+            font-weight: 900;
+            font-size: 20px;
+            font-style: italic;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo-box .collapse-btn {
+            font-size: 20px;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.85);
+            transition: color 0.2s;
+        }
+
+        .logo-box .collapse-btn:hover {
+            color: #fff;
+        }
+
+        .top-nav {
+            display: flex;
+            height: 100%;
+            flex: 1;
+            align-items: center;
+            margin-left: 32px;
+            gap: 8px;
+        }
+
+        .top-nav-item {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all .25s;
+            border-radius: 6px;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .top-nav-item i {
+            font-size: 18px;
+        }
+
+        .top-nav-item:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .top-nav-item.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .user-box {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 1);
+        }
+
+        .user-box .dots {
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.85;
+            transition: opacity 0.2s;
+        }
+
+        .user-box .dots:hover {
+            opacity: 1;
+        }
+
+        .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, .8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            gap: 6px;
+        }
+
+        .main-wrap {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 200px;
+            background: #0e2246;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 10;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, .15);
+        }
+
+        .sidebar-list {
+            flex: 1;
+            padding-top: 6px;
+        }
+
+        .sidebar-item {
+            height: 42px;
+            display: flex;
+            align-items: center;
+            padding: 0 18px;
+            color: rgba(255, 255, 255, .6);
+            cursor: pointer;
+            transition: all .2s;
+            font-size: 14px;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+
+        .sidebar-item:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, .06);
+        }
+
+        .sidebar-item.active {
+            color: #fff;
+            background: #2684ff;
+            border-left: 3px solid #6bb5ff;
+        }
+
+        .sidebar-item .ico {
+            width: 20px;
+            text-align: center;
+            margin-right: 10px;
+            flex-shrink: 0;
+            font-size: 15px;
+        }
+
+        /* content area */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .breadcrumb-bar {
+            height: 40px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid #e8e8e8;
+            font-size: 13px;
+            color: #999;
+        }
+
+        .card {
+            background: #fff;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            overflow: auto;
+        }
+
+        /* form panel view (map + dark overlay) */
+        .view-form {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .fmap {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: #2a3544;
+            overflow: hidden;
+        }
+
+        #leafletMap {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Leaflet 控件层级适配 */
+        .leaflet-control-container {
+            z-index: 10;
+        }
+
+        /* svg for corridor - 不再使用，保留兼容 */
+        #mapSvg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        }
+
+        .corridor-polygon {
+            stroke-width: 2;
+            fill-opacity: 0.35;
+            transition: fill 0.2s, stroke 0.2s;
+        }
+
+        .corridor-point {
+            fill: #fff;
+            stroke-width: 2;
+            r: 5;
+            pointer-events: all;
+            cursor: pointer;
+        }
+
+        .corridor-point:hover {
+            r: 7;
+        }
+
+        /* 左侧深色面板 */
+        .dark-panel {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            width: 320px;
+            max-height: calc(100% - 100px);
+            background: rgba(14, 26, 47, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            color: #cfd3dc;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .dp-head {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .dp-back {
+            cursor: pointer;
+            font-size: 20px;
+            color: #a3a6ad;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: color .2s;
+        }
+
+        .dp-back:hover {
+            color: #fff;
+        }
+
+        .dp-save {
+            cursor: pointer;
+            font-size: 18px;
+            color: #a3a6ad;
+            display: flex;
+            align-items: center;
+            transition: color .2s;
+        }
+
+        .dp-save:hover {
+            color: #fff;
+        }
+
+        .dp-tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dp-tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            font-size: 14px;
+            color: #909399;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .dp-tab.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 2px solid #409eff;
+        }
+
+        .dp-body {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* 深色表单项 */
+        .df-row {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .df-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .df-label .req {
+            color: #f56c6c;
+            margin-right: 4px;
+        }
+
+        .df-label .ico-del {
+            font-size: 14px;
+            color: #f56c6c;
+            cursor: pointer;
+        }
+
+        .df-input,
+        .df-select,
+        .df-textarea {
+            width: 100%;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            color: #fff;
+            padding: 0 12px;
+            font-size: 14px;
+            outline: none;
+            transition: .2s;
+        }
+
+        .df-input:focus,
+        .df-select:focus,
+        .df-textarea:focus {
+            border-color: #409eff;
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+        }
+
+        .df-textarea {
+            height: 60px;
+            padding: 8px 10px;
+            resize: none;
+        }
+
+        .df-select option {
+            background: #1a2536;
+            color: #fff;
+        }
+
+        .df-flex {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .df-flex .df-input {
+            flex: 1;
+        }
+
+        .df-radio-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            padding-top: 4px;
+        }
+
+        .df-radio {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #cfd3dc;
+        }
+
+        .df-radio input {
+            accent-color: #409eff;
+            width: 14px;
+            height: 14px;
+        }
+
+        /* 开关组件 */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 32px;
+            height: 18px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            transition: .4s;
+            border-radius: 18px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #409eff;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(14px);
+        }
+
+        /* 廊道层项样式 */
+        .layer-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .layer-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .layer-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .layer-range {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-left: 8px;
+            font-weight: normal;
+        }
+
+        .layer-body {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .layer-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .layer-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            width: 85px;
+            flex-shrink: 0;
+        }
+
+        .layer-label .req {
+            color: #f56c6c;
+            margin-right: 2px;
+        }
+
+        .layer-input-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .layer-input {
+            flex: 1;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            color: #fff;
+            padding: 0 8px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .layer-unit {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            width: 30px;
+        }
+
+        /* PRD 要求的表格样式 */
+        .layer-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .layer-table th {
+            text-align: left;
+            padding: 10px 8px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: normal;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+        }
+
+        .layer-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+        }
+
+        .layer-table .input-cell {
+            width: 80px;
+        }
+
+        .layer-table .input-cell input {
+            width: 100%;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            color: #fff;
+            padding: 0 6px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .layer-table .input-cell input:focus {
+            border-color: #409eff;
+        }
+
+        .layer-table .input-cell input:disabled {
+            background: rgba(0, 0, 0, 0.2);
+            color: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+            border-color: transparent;
+        }
+
+        .layer-table .input-cell input.error {
+            border-color: #f56c6c;
+            box-shadow: 0 0 0 2px rgba(245, 108, 108, 0.2);
+        }
+
+        .layer-info-text {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            line-height: 1.4;
+        }
+
+        .layer-info-text .highlight {
+            color: #409eff;
+        }
+
+        .layer-err-tip {
+            color: #f56c6c;
+            font-size: 11px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .layer-err-tip.show {
+            display: block;
+        }
+
+        /* 颜色选择器组件 */
+        .color-selector {
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .color-presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .color-preset-item {
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .3);
+            border: 2px solid transparent;
+            transition: .2s;
+        }
+
+        .color-preset-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .color-preset-item.active {
+            border-color: #fff;
+            transform: scale(1.1);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+        }
+
+
+        .dp-foot {
+            display: none;
+        }
+
+        .btn-finish {
+            width: 100%;
+            height: 40px;
+            background: rgba(16, 46, 112, 0.8);
+            border: 1px solid #1890ff;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-finish:hover {
+            background: #1890ff;
+        }
+
+        /* common buttons */
+        .btn {
+            height: 32px;
+            padding: 0 16px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            background: #fff;
+            color: #606266;
+            transition: .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn i {
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            border-color: #409eff;
+            color: #409eff;
+        }
+
+        .btn-primary {
+            background: #409eff;
+            color: #fff;
+            border-color: #409eff;
+        }
+
+        .btn-primary:hover {
+            background: #66b1ff;
+            border-color: #66b1ff;
+            color: #fff;
+        }
+
+        .btn-dark {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-dark:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: #fff;
+        }
+
+        /* 列表表格样式 (简单复用) */
+        .tbl {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .tbl th {
+            background: #f5f7fa;
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid #ebeef5;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .tbl td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #ebeef5;
+            font-size: 13px;
+        }
+
+        .tbl tr:hover {
+            background: #f5f7fa;
+        }
+
+        .btn-link {
+            background: none;
+            border: none;
+            color: #409eff;
+            cursor: pointer;
+            padding: 0 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 13px;
+            transition: color .2s;
+        }
+
+        .btn-link:hover {
+            color: #66b1ff;
+        }
+
+        .btn-link-d {
+            background: none;
+            border: none;
+            color: #f56c6c;
+            cursor: pointer;
+            padding: 0 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 13px;
+            transition: color .2s;
+        }
+
+        .btn-link-d:hover {
+            color: #f89898;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .err-msg {
+            color: #f56c6c;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        /* ========== 快捷定位控制台 ========== */
+        .pos-panel {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 25;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0;
+            pointer-events: auto;
+        }
+
+        .pos-icons {
+            display: flex;
+            gap: 6px;
+            background: rgba(14, 26, 47, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            padding: 6px 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .pos-icon-btn {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.25s;
+            color: rgba(255, 255, 255, 0.7);
+            position: relative;
+        }
+
+        .pos-icon-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .pos-icon-btn.active {
+            background: rgba(64, 158, 255, 0.25);
+            color: #409eff;
+            box-shadow: 0 0 0 1px rgba(64, 158, 255, 0.4);
+        }
+
+        .pos-icon-btn::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .pos-icon-btn:hover::after {
+            opacity: 1;
+        }
+
+        .pos-sub-panel {
+            display: none;
+            margin-top: 8px;
+            background: rgba(14, 26, 47, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 14px;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+            width: 320px;
+            animation: panelSlideIn 0.25s ease;
+        }
+
+        .pos-sub-panel.show {
+            display: block;
+        }
+
+        @keyframes panelSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .pos-sub-panel .panel-title {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pos-sub-panel .panel-title::before {
+            content: '';
+            width: 3px;
+            height: 12px;
+            background: #409eff;
+            border-radius: 2px;
+        }
+
+        /* POI 下拉 */
+        .poi-dropdown {
+            max-height: 220px;
+            overflow-y: auto;
+            margin-top: 8px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .poi-dropdown.show {
+            display: block;
+        }
+
+        .poi-item {
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #cfd3dc;
+            cursor: pointer;
+            transition: background 0.15s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .poi-item:hover {
+            background: rgba(64, 158, 255, 0.15);
+            color: #fff;
+        }
+
+        .poi-item .poi-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .poi-item .poi-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .poi-item .poi-name {
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .poi-item .poi-addr {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-top: 2px;
+        }
+
+        .poi-empty {
+            padding: 16px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 13px;
+        }
+
+        /* 已有廊道选择器 */
+        .corridor-select-wrap {
+            position: relative;
+        }
+
+        .corridor-select-wrap .clear-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 4px;
+            display: none;
+        }
+
+        .corridor-select-wrap .clear-btn:hover {
+            color: #f56c6c;
+        }
+
+        /* 坐标输入 */
+        .coord-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .coord-field {
+            flex: 1;
+        }
+
+        .coord-field label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.45);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .coord-field .df-input.error {
+            border-color: #f56c6c;
+            box-shadow: 0 0 0 2px rgba(245, 108, 108, 0.2);
+        }
+
+        .coord-err {
+            color: #f56c6c;
+            font-size: 12px;
+            margin-bottom: 6px;
+            display: none;
+        }
+
+        .coord-err.show {
+            display: block;
+        }
+
+        /* 飞行动画 overlay */
+        .fly-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 22;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0);
+            transition: background 0.3s;
+        }
+
+        .fly-overlay.flying {
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        /* 临时大头针 */
+        .temp-marker {
+            fill: #409eff;
+            stroke: #fff;
+            stroke-width: 2;
+            cursor: pointer;
+            pointer-events: all;
+            filter: drop-shadow(0 2px 6px rgba(64, 158, 255, 0.6));
+        }
+
+        .temp-marker-pin {
+            pointer-events: all;
+            cursor: pointer;
+        }
+
+        .temp-marker-pulse {
+            animation: markerPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes markerPulse {
+
+            0%,
+            100% {
+                r: 12;
+                opacity: 0.3;
+            }
+
+            50% {
+                r: 20;
+                opacity: 0;
+            }
+        }
+
+        /* 廊道高亮闪烁 */
+        @keyframes corridorBlink {
+
+            0%,
+            100% {
+                stroke-opacity: 1;
+                fill-opacity: 0.35;
+            }
+
+            50% {
+                stroke-opacity: 0.2;
+                fill-opacity: 0.1;
+            }
+        }
+
+        .corridor-blinking polygon,
+        .corridor-blinking line {
+            animation: corridorBlink 0.5s ease-in-out 6;
+        }
+
+        /* fly-to 目标点呼吸圈 */
+        .fly-target-ring {
+            stroke: #409eff;
+            stroke-width: 2;
+            fill: none;
+            animation: targetRing 1s ease-out forwards;
+        }
+
+        @keyframes targetRing {
+            0% {
+                r: 5;
+                opacity: 1;
+            }
+
+            100% {
+                r: 40;
+                opacity: 0;
+            }
+        }
+
+        /* Leaflet 临时大头针标签 */
+        .leaflet-temp-pin {
+            background: none !important;
+            border: none !important;
+        }
+
+        .temp-pin-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .temp-pin-label {
+            position: absolute;
+            top: -6px;
+            left: 36px;
+            background: rgba(14, 26, 47, 0.9);
+            color: #409eff;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            border: 1px solid rgba(64, 158, 255, 0.3);
+        }
+
+        /* 廊道节点编号 tooltip */
+        .corridor-tooltip {
+            background: rgba(14, 26, 47, 0.85) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            color: #fff !important;
+            font-size: 11px !important;
+            padding: 2px 6px !important;
+            border-radius: 3px !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .corridor-tooltip::before {
+            display: none !important;
+        }
+
+        /* 廊道高亮闪烁动画 (Leaflet层) */
+        .corridor-blink-anim {
+            animation: corridorBlink 0.5s ease-in-out 6;
+        }
+
+        /* ========== 新建廊道 快速定位 ========== */
+        .fast-pos-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            /* 右上角，避开左侧控制面板 */
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            pointer-events: auto;
+            width: 380px;
+        }
+
+        .fp-search-box {
+            display: flex;
+            align-items: center;
+            background: rgba(14, 26, 47, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            height: 40px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .fp-select {
+            background: rgba(14, 26, 47, 0.95);
+            border: none;
+            color: #fff;
+            padding: 0 10px;
+            height: 100%;
+            outline: none;
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            width: 105px;
+            flex-shrink: 0;
+        }
+
+        .fp-select option {
+            background: #1a2536;
+            color: #fff;
+        }
+
+        .fp-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            padding: 0 12px;
+            height: 100%;
+            outline: none;
+            min-width: 0;
+            font-size: 13px;
+        }
+
+        .fp-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .fp-btn {
+            background: rgba(64, 158, 255, 0.15);
+            border: none;
+            border-left: 1px solid rgba(255, 255, 255, 0.15);
+            color: #409eff;
+            width: 44px;
+            height: 100%;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .fp-btn:hover {
+            background: #409eff;
+            color: #fff;
+        }
+
+        .fp-err {
+            color: #f56c6c;
+            font-size: 12px;
+            margin-top: 6px;
+            background: rgba(14, 26, 47, 0.95);
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid rgba(245, 108, 108, 0.3);
+            display: none;
+            align-self: flex-start;
+            width: 100%;
+            backdrop-filter: blur(12px);
+        }
+
+        .fp-err.show {
+            display: block;
+        }
+
+        .fp-dropdown {
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(14, 26, 47, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            width: 100%;
+            margin-top: 6px;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+            display: none;
+        }
+
+        .fp-dropdown.show {
+            display: block;
+        }
+
+        .fp-item {
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #cfd3dc;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .fp-item:hover {
+            background: rgba(64, 158, 255, 0.15);
+            color: #fff;
+        }
+
+        @keyframes fpPointFlash {
+
+            0%,
+            100% {
+                r: 12;
+                fill-opacity: 0.5;
+                stroke-width: 2;
+            }
+
+            50% {
+                r: 20;
+                fill-opacity: 0.1;
+                stroke-width: 4;
+            }
+        }
+
+        .fp-point-flash {
+            animation: fpPointFlash 0.5s ease-in-out 6;
+            /* 3秒闪烁 */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app" id="app">
+        <div id="toastBox"></div>
+
+        <!-- 顶部导航 -->
+        <div class="top-header">
+            <div class="logo-box">
+                <span class="brand">廊道运维管理平台</span>
+                <i class="ri-menu-unfold-line collapse-btn"></i>
+            </div>
+            <div class="top-nav">
+                <a class="top-nav-item" href="index.html">
+                    <i class="ri-dashboard-3-line"></i> 廊道态势显示
+                </a>
+                <a class="top-nav-item active" href="廊道信息维护.html">
+                    <i class="ri-exchange-line"></i> 廊道基础数据
+                </a>
+                <a class="top-nav-item" href="规划计划.html">
+                    <i class="ri-file-list-3-line"></i> 规划计划
+                </a>
+                <a class="top-nav-item" href="地面节点信息维护.html">
+                    <i class="ri-share-line"></i> 地面节点管理
+                </a>
+                <a class="top-nav-item" href="飞行器管理.html">
+                    <i class="ri-flight-takeoff-line"></i> 飞行器管理
+                </a>
+                <a class="top-nav-item" href="健康管理.html">
+                    <i class="ri-heart-pulse-line"></i> 健康管理
+                </a>
+            </div>
+            <div class="user-box">
+                <i class="ri-fullscreen-line dots" title="全屏"></i>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="avatar"><i class="ri-user-line"></i></div>
+                    <span>Super</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主体 -->
+        <div class="main-wrap">
+            <!-- 左侧导航栏 -->
+            <div class="sidebar">
+                <div class="sidebar-list">
+                    <a class="sidebar-item active" href="廊道信息维护.html">
+                        <span class="ico"><i class="ri-road-map-line"></i></span> 廊道信息维护
+                    </a>
+                    <a class="sidebar-item" href="转弯区信息维护.html">
+                        <span class="ico"><i class="ri-exchange-line"></i></span> 转弯区信息维护
+                    </a>
+                    <a class="sidebar-item" href="起降点信息维护.html">
+                        <span class="ico"><i class="ri-flight-land-line"></i></span> 起降点信息维护
+                    </a>
+                    <a class="sidebar-item" href="应急点信息维护.html">
+                        <span class="ico"><i class="ri-alarm-warning-line"></i></span> 应急点信息维护
+                    </a>
+                </div>
+            </div>
+            <div class="content-area">
+                <!-- 列表视图 -->
+                <div id="viewList" class="card" style="display:flex;">
+                    <div style="margin-bottom: 16px; display: flex; gap: 8px;">
+                        <button class="btn btn-primary" onclick="goCreate()"><i class="ri-add-line"></i> 新建廊道</button>
+                        <button class="btn" onclick="clearData()"><i class="ri-delete-bin-line"></i> 清空测试数据</button>
+                    </div>
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>廊道名称</th>
+                                <th>高度(m)</th>
+                                <th>展示颜色</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- 表单视图 (暗黑左悬浮 + 全屏地图) -->
+                <div id="viewForm" class="view-form hidden">
+                    <div class="fmap" id="mapArea">
+                        <div id="leafletMap"></div>
+                        <svg id="mapSvg"></svg>
+                        <div class="fly-overlay" id="flyOverlay"></div>
+
+                        <!-- 快速定位控制台 -->
+                        <div class="fast-pos-panel" id="fpPanel" onclick="event.stopPropagation()">
+                            <div class="fp-search-box">
+                                <select class="fp-select" id="fpCategory">
+                                    <option value="all">全部</option>
+                                    <option value="corridor">已有廊道</option>
+                                    <option value="takeoff">起降点</option>
+                                    <option value="node">地面节点</option>
+                                    <option value="coord">经纬度</option>
+                                </select>
+                                <input type="text" class="fp-input" id="fpKeyword" placeholder="请输入关键字或经纬度"
+                                    autocomplete="off">
+                                <button class="fp-btn" onclick="triggerFastPosSearch()"><i
+                                        class="ri-search-line"></i></button>
+                            </div>
+                            <!-- 错误提示 -->
+                            <div class="fp-err" id="fpErr">经纬度格式错误，请重新输入</div>
+                            <!-- 搜索结果下拉 -->
+                            <div class="fp-dropdown" id="fpDropdown"></div>
+                        </div>
+                    </div>
+
+                    <div class="dark-panel">
+                        <div class="dp-head">
+                            <div class="dp-back" onclick="goList()" title="返回列表">
+                                <i class="ri-arrow-left-s-line"></i>
+                            </div>
+                            <div class="dp-save" onclick="saveForm()" title="保存">
+                                <i class="ri-save-line"></i>
+                            </div>
+                        </div>
+                        <div class="dp-tabs" id="dpTabs">
+                            <div class="dp-tab active" onclick="switchTab('info')">廊道信息</div>
+                            <div class="dp-tab" onclick="switchTab('layer')">廊道层信息</div>
+                        </div>
+                        <div class="dp-body" id="formBody">
+                            <!-- 廊道基础信息 -->
+                            <div id="infoContent">
+                                <div class="df-row">
+                                    <div class="df-label"><span class="req">*</span> 廊道名称</div>
+                                    <input type="text" class="df-input" id="fName" placeholder="请输入廊道名称"
+                                        oninput="onChange()">
+                                </div>
+
+                                <div class="df-row">
+                                    <div class="df-label"><span class="req">*</span> 高度范围</div>
+                                    <div class="df-flex">
+                                        <input type="number" class="df-input" id="fHeight" value="6000"
+                                            oninput="onChange()">
+                                        <span style="color:#909399;font-size:13px;">m</span>
+                                    </div>
+                                </div>
+
+                                <!-- 动态坐标点列表 -->
+                                <div id="pointsContainer"></div>
+                                <div class="df-row" style="margin-top:-8px;">
+                                    <span style="font-size:12px;color:#909399;">* 点击右侧地图自动添加节点</span>
+                                </div>
+
+                                <div class="df-row">
+                                    <div class="df-label"><span class="req">*</span> 廊道方向</div>
+                                    <div class="df-flex">
+                                        <select class="df-select" id="fDirStart" onchange="onChange()">
+                                            <option value="起点">起点</option>
+                                        </select>
+                                        <span style="color:#409eff;">→</span>
+                                        <select class="df-select" id="fDirEnd" onchange="onChange()">
+                                            <option value="终点">终点</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="df-row">
+                                    <div class="df-label"><span class="req">*</span> 廊道扩展方向</div>
+                                    <div class="df-radio-group">
+                                        <label class="df-radio"><input type="radio" name="fExp" value="左侧" checked
+                                                onchange="onChange()">左侧</label>
+                                        <label class="df-radio"><input type="radio" name="fExp" value="右侧"
+                                                onchange="onChange()">右侧</label>
+                                    </div>
+                                </div>
+
+                                <!-- 廊道展示颜色：预设色块+颜色选择器 -->
+                                <div class="df-row">
+                                    <div class="df-label"><span class="req">*</span> 廊道展示颜色</div>
+                                    <div class="color-selector">
+                                        <div class="color-presets" id="colorPresets">
+                                            <!-- JS render -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="df-row">
+                                    <div class="df-label"><span class="req">*</span> 备注</div>
+                                    <textarea class="df-textarea" id="fRemark" placeholder="请输入备注信息"
+                                        oninput="onChange()"></textarea>
+                                    <div
+                                        style="text-align:right; font-size:12px; color:rgba(255,255,255,0.4); margin-top:4px;">
+                                        0 / 200</div>
+                                </div>
+
+                                <button class="btn-finish" onclick="saveForm()" id="btnFinish">完成廊道创建</button>
+                            </div>
+
+                            <!-- 廊道层信息 (PRD 修正版) -->
+                            <div id="layerContent" class="hidden">
+                                <div style="margin-bottom: 12px; font-size: 12px; color: rgba(255,255,255,0.4);">
+                                    <i class="ri-information-line"></i> 基于比例分配机制 (60% 安全区, 上下各 20% 缓冲)
+                                </div>
+                                <table class="layer-table">
+                                    <thead>
+                                        <tr>
+                                            <th>层序号</th>
+                                            <th>起始(m)</th>
+                                            <th>终止(m)</th>
+                                            <th>总宽(m)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="layerTableBody">
+                                        <!-- JS render -->
+                                    </tbody>
+                                </table>
+                                <div id="layerGlobalErr" class="layer-err-tip" style="margin-top: 15px;"></div>
+                            </div>
+
+                        </div>
+                        <div class="dp-foot">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= 数据 =================
+        const PRESET_COLORS = [
+            { name: '科技蓝', hex: '#409EFF' },
+            { name: '通行绿', hex: '#67C23A' },
+            { name: '通行青', hex: '#33FF57' },
+            { name: '预警黄', hex: '#E6A23C' },
+            { name: '专属紫', hex: '#9C27B0' },
+            { name: '活力橙', hex: '#FF7D00' },
+            { name: '警戒红', hex: '#F56C6C' },
+            { name: '深海蓝', hex: '#00BCD4' }
+        ];
+
+        let corridors = [
+            { id: 1, name: '杭长高速复线演示段', height: 6000, color: '#33FF57', points: [[120, 100], [250, 300]], exp: '左侧', createTime: '2026-03-11 09:30' }
+        ];
+        let nextId = 2;
+
+        let state = {
+            mode: 'list', // list, create, edit
+            form: { id: null, name: '', height: 6000, color: '#33FF57', exp: '左侧', remark: '', points: [] },
+            layers: [
+                { id: 'near-1', name: '近地层1号', start: 0, end: 100, width: 500, lockedStart: true, lockedEnd: false },
+                { id: 'near-2', name: '近地层2号', start: 100, end: 200, width: 500, lockedStart: false, lockedEnd: false },
+                { id: 'near-3', name: '近地层3号', start: 200, end: 300, width: 500, lockedStart: false, lockedEnd: true }
+            ]
+        };
+
+        function $(id) { return document.getElementById(id); }
+        function esc(s) { let d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        let toastT;
+        function showToast(msg, type = 'success') {
+            clearTimeout(toastT);
+            const icons = { success: 'ri-checkbox-circle-fill', warning: 'ri-alert-fill', error: 'ri-close-circle-fill', info: 'ri-information-fill' };
+            const ico = icons[type] || icons.info;
+            $('toastBox').innerHTML = `<div class="toast ${type}"><i class="${ico}"></i>${esc(msg)}</div>`;
+            toastT = setTimeout(() => $('toastBox').innerHTML = '', 2500);
+        }
+
+        // ================= 标签页切换 =================
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.dp-tab');
+            if (tab === 'info') {
+                tabs[0].classList.add('active');
+                tabs[1].classList.remove('active');
+                $('infoContent').classList.remove('hidden');
+                $('layerContent').classList.add('hidden');
+            } else {
+                tabs[0].classList.remove('active');
+                tabs[1].classList.add('active');
+                $('infoContent').classList.add('hidden');
+                $('layerContent').classList.remove('hidden');
+                renderLayerTable();
+            }
+        }
+
+        // ================= 廊道层逻辑 (PRD) =================
+        function renderLayerTable() {
+            let h = '';
+            state.layers.forEach((layer, i) => {
+                const height = layer.end - layer.start;
+                const safeZone = (height * 0.6).toFixed(1);
+                const buffer = (height * 0.2).toFixed(1);
+
+                // 校验
+                const isLow = layer.end <= 1000;
+                const minH = isLow ? 80 : 250;
+                const heightErr = height < minH;
+                const widthErr = layer.width < 500 || layer.width > 5000; // 假设默认下限500
+
+                h += `
+                <tr>
+                    <td>
+                        <div style="font-weight:600; color:#fff;">${layer.name}</div>
+                    </td>
+                    <td class="input-cell">
+                        <input type="number" value="${layer.start}" disabled>
+                    </td>
+                    <td class="input-cell">
+                        <input type="number" value="${layer.end}" 
+                            ${layer.lockedEnd ? 'disabled' : ''} 
+                            oninput="updateLayerEnd(${i}, this.value)"
+                            class="${heightErr ? 'error' : ''}">
+                    </td>
+                    <td class="input-cell">
+                        <input type="number" value="${layer.width}" 
+                            oninput="updateLayerWidth(${i}, this.value)"
+                            class="${widthErr ? 'error' : ''}">
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" style="padding-top:0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <div class="layer-info-text">
+                            安全区 <span class="highlight">${safeZone}m</span>, 
+                            上下缓冲各 <span class="highlight">${buffer}m</span>
+                            ${heightErr ? `<div class="err-msg">层高不足最低限制 (${minH}m)</div>` : ''}
+                            ${widthErr ? `<div class="err-msg">宽度超出范围 (500-5000m)</div>` : ''}
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            $('layerTableBody').innerHTML = h;
+            checkGlobalLayers();
+        }
+
+        function updateLayerEnd(idx, val) {
+            val = parseFloat(val) || 0;
+            state.layers[idx].end = val;
+            // 联动：下一层的起始高度等于当前层的终止高度
+            if (idx < state.layers.length - 1) {
+                state.layers[idx + 1].start = val;
+            }
+            renderLayerTable();
+        }
+
+        function updateLayerWidth(idx, val) {
+            val = parseFloat(val) || 0;
+            state.layers[idx].width = val;
+            renderLayerTable();
+        }
+
+        function checkGlobalLayers() {
+            let err = '';
+            const totalHeight = state.layers[state.layers.length - 1].end - state.layers[0].start;
+
+            // 检查剩余空间
+            for (let i = 0; i < state.layers.length; i++) {
+                const isLow = state.layers[i].end <= 1000;
+                const minH = isLow ? 80 : 250;
+                if (state.layers[i].end - state.layers[i].start < minH) {
+                    err = '部分层级高度不足，请重新分配';
+                }
+            }
+
+            const errEl = $('layerGlobalErr');
+            if (err) {
+                errEl.innerHTML = `<i class="ri-error-warning-line"></i> ${err}`;
+                errEl.classList.add('show');
+            } else {
+                errEl.classList.remove('show');
+            }
+        }
+
+        // ================= 初始化 =================
+        function init() {
+            renderPresets();
+            renderList();
+        }
+
+        // ================= 列表视图 =================
+        function renderList() {
+            $('viewList').classList.remove('hidden');
+            $('viewForm').classList.add('hidden');
+
+            let h = '';
+            if (!corridors.length) {
+                h = '<tr><td colspan="5" style="text-align:center;padding:30px;color:#999;">暂无数据</td></tr>';
+            } else {
+                corridors.forEach((c, i) => {
+                    h += `<tr>`;
+                    h += `<td>${i + 1}</td>`;
+                    h += `<td>${esc(c.name)}</td>`;
+                    h += `<td>${c.height}</td>`;
+                    h += `<td><span style="display:inline-block;width:12px;height:12px;background:${c.color};margin-right:4px;"></span>${c.color}</td>`;
+                    h += `<td><button class="btn-link" onclick="goEdit(${c.id})"><i class="ri-edit-line"></i> 编辑</button><button class="btn-link-d" onclick="del(${c.id})"><i class="ri-delete-bin-line"></i> 删除</button></td>`;
+                    h += `</tr>`;
+                });
+            }
+            $('listBody').innerHTML = h;
+        }
+
+        function del(id) {
+            if (confirm('确认删除?')) {
+                corridors = corridors.filter(x => x.id !== id);
+                renderList();
+                showToast('已删除');
+            }
+        }
+        function clearData() { corridors = []; renderList(); }
+
+        // ================= 表单流转 =================
+        function goList() { renderList(); }
+        function goCreate() {
+            state.mode = 'create';
+            state.form = { id: null, name: '', height: 6000, color: '#33FF57', exp: '左侧', remark: '', points: [] };
+            // 初始化默认层
+            state.layers = [
+                { id: 'near-1', name: '近地层1号', start: 0, end: 100, width: 500, lockedStart: true, lockedEnd: false },
+                { id: 'near-2', name: '近地层2号', start: 100, end: 200, width: 500, lockedStart: false, lockedEnd: false },
+                { id: 'near-3', name: '近地层3号', start: 200, end: 300, width: 500, lockedStart: false, lockedEnd: true }
+            ];
+            $('btnFinish').style.display = 'block';
+            setSidebarHidden(true);
+            switchTab('info');
+            fillForm();
+            renderForm();
+        }
+        function goEdit(id) {
+            let r = corridors.find(x => x.id === id);
+            if (!r) return;
+            state.mode = 'edit';
+            state.form = JSON.parse(JSON.stringify(r));
+            // 加载保存的层或使用默认
+            if (state.form.layers) {
+                state.layers = JSON.parse(JSON.stringify(state.form.layers));
+            } else {
+                state.layers = [
+                    { id: 'near-1', name: '近地层1号', start: 0, end: 100, width: 500, lockedStart: true, lockedEnd: false },
+                    { id: 'near-2', name: '近地层2号', start: 100, end: 200, width: 500, lockedStart: false, lockedEnd: false },
+                    { id: 'near-3', name: '近地层3号', start: 200, end: 300, width: 500, lockedStart: false, lockedEnd: true }
+                ];
+            }
+            $('btnFinish').style.display = 'none';
+            setSidebarHidden(false);
+            switchTab('info');
+            fillForm();
+            renderForm();
+        }
+
+        // ================= 颜色控件 =================
+        function renderPresets() {
+            let h = '';
+            PRESET_COLORS.forEach(c => {
+                h += `<div class="color-preset-item" title="${c.name}" data-hex="${c.hex}" style="background-color:${c.hex};" onclick="setColor('${c.hex}', false)"></div>`;
+            });
+            $('colorPresets').innerHTML = h;
+        }
+
+        function updateColorUI() {
+            let c = state.form.color.toUpperCase();
+            // pre-set border active
+            document.querySelectorAll('.color-preset-item').forEach(el => {
+                if (el.getAttribute('data-hex').toUpperCase() === c) el.classList.add('active');
+                else el.classList.remove('active');
+            });
+        }
+
+        function setColor(hex) {
+            state.form.color = hex;
+            updateColorUI();
+            drawMap();
+        }
+
+        function setSidebarHidden(hide) {
+            const el = document.querySelector('.sidebar');
+            if (!el) return;
+            if (hide) el.classList.add('hidden');
+            else el.classList.remove('hidden');
+        }
+
+
+        // ================= Leaflet 地图引擎 =================
+        let leafletMap = null;
+        let corridorLayerGroup = null;
+        let tempMarkerLayer = null;
+        let tempMarker = null;
+        let highlightedCorridorId = null;
+
+        function initLeafletMap() {
+            if (leafletMap) return;
+
+            leafletMap = L.map('leafletMap', {
+                center: [30.25, 120.15],
+                zoom: 10,
+                zoomControl: false
+            });
+
+            // ESRI 卫星底图
+            const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; Esri',
+                maxZoom: 19
+            });
+
+            // 高德地图底图
+            const gaode = L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+                subdomains: '1234',
+                attribution: '&copy; 高德地图',
+                maxZoom: 18
+            });
+
+            // OpenStreetMap
+            const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap',
+                maxZoom: 19
+            });
+
+            // 高德注记覆盖层（透明底 + 中文地名/路名）
+            const gaodeLabel = L.tileLayer('https://wprd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=8&ltype=4', {
+                subdomains: '1234',
+                maxZoom: 18,
+                transparent: true,
+                opacity: 0.85
+            });
+
+            satellite.addTo(leafletMap);
+            gaodeLabel.addTo(leafletMap); // 默认显示标注
+
+            // 图层切换控件
+            L.control.layers({
+                '卫星影像': satellite,
+                '高德地图': gaode,
+                '街道地图': osm
+            }, {
+                '地名标注': gaodeLabel
+            }, { position: 'bottomright' }).addTo(leafletMap);
+
+            // 缩放控件
+            L.control.zoom({ position: 'bottomright' }).addTo(leafletMap);
+
+            // 廊道绘制图层
+            corridorLayerGroup = L.featureGroup().addTo(leafletMap);
+
+            // 地图点击事件 - 添加打点
+            leafletMap.on('click', function (e) {
+                addMapPoint(e.latlng.lng, e.latlng.lat);
+            });
+        }
+
+        // ================= 表单与地图联动 =================
+        function fillForm() {
+            let f = state.form;
+            $('fName').value = f.name;
+            $('fHeight').value = f.height;
+            document.querySelectorAll('input[name="fExp"]').forEach(el => {
+                el.checked = (el.value === f.exp);
+            });
+            $('fRemark').value = f.remark || '';
+            updateColorUI();
+            renderPointsList();
+            drawMap();
+        }
+
+        function onChange() {
+            state.form.name = $('fName').value;
+            state.form.height = parseFloat($('fHeight').value) || 0;
+            if (state.form.height > 6000) {
+                state.form.height = 6000;
+                $('fHeight').value = 6000;
+                showToast('高度上限已锁死为 6000m', 'warning');
+            }
+            let exp = document.querySelector('input[name="fExp"]:checked');
+            if (exp) state.form.exp = exp.value;
+            state.form.remark = $('fRemark').value;
+        }
+
+        function renderPointsList() {
+            let h = '';
+            state.form.points.forEach((p, i) => {
+                h += `
+            <div class="df-row coord-item" style="margin-bottom:8px;">
+                <div class="df-label" style="width:100%;"><span class="req">*</span> 廊道${i + 1}号点坐标 <span class="ico-del" onclick="delMapPoint(${i})" title="删除此点"><i class="ri-delete-bin-line"></i></span></div>
+                <div class="df-flex" style="margin-top:-6px;">
+                    <input type="text" class="df-input" value="${p[0].toFixed(6)}" readonly>
+                    <input type="text" class="df-input" value="${p[1].toFixed(6)}" readonly>
+                </div>
+            </div>`;
+            });
+            $('pointsContainer').innerHTML = h;
+        }
+
+        function addMapPoint(lng, lat) {
+            state.form.points.push([lng, lat]);
+            renderPointsList();
+            drawMap();
+        }
+
+        function delMapPoint(i) {
+            state.form.points.splice(i, 1);
+            renderPointsList();
+            drawMap();
+        }
+
+        function drawMap() {
+            if (!corridorLayerGroup) return;
+            corridorLayerGroup.clearLayers();
+
+            let pts = state.form.points;
+            let c = state.form.color;
+
+            if (pts.length > 0) {
+                let latLngs = pts.map(p => [p[1], p[0]]); // Leaflet uses [lat, lng]
+
+                if (pts.length > 2) {
+                    // 多边形
+                    L.polygon(latLngs, {
+                        color: c,
+                        weight: 2,
+                        fillOpacity: 0.3,
+                        fillColor: c
+                    }).addTo(corridorLayerGroup);
+                } else if (pts.length === 2) {
+                    // 两点连线（带宽度）
+                    L.polyline(latLngs, {
+                        color: c,
+                        weight: 4,
+                        opacity: 0.8,
+                        dashArray: '10, 6'
+                    }).addTo(corridorLayerGroup);
+                    // 宽廊道效果
+                    // 根据 layers 的平均宽度来绘制？暂时用固定值 30
+                    let avgWidth = 30;
+                    if (state.layers && state.layers.length > 0) {
+                        avgWidth = state.layers.reduce((acc, l) => acc + l.width, 0) / state.layers.length / 10; // 缩放一下
+                    }
+                    L.polyline(latLngs, {
+                        color: c,
+                        weight: avgWidth,
+                        opacity: 0.2
+                    }).addTo(corridorLayerGroup);
+                }
+
+                // 各节点标记
+                pts.forEach((p, i) => {
+                    let marker = L.circleMarker([p[1], p[0]], {
+                        radius: 6,
+                        color: c,
+                        fillColor: '#fff',
+                        fillOpacity: 1,
+                        weight: 2
+                    }).addTo(corridorLayerGroup);
+
+                    marker.bindTooltip(`${i + 1}`, {
+                        permanent: true,
+                        direction: 'right',
+                        className: 'corridor-tooltip',
+                        offset: [8, 0]
+                    });
+
+                    marker.on('click', function (e) {
+                        L.DomEvent.stopPropagation(e);
+                        delMapPoint(i);
+                    });
+                });
+            }
+
+            // 临时大头针
+            if (tempMarker) {
+                if (tempMarkerLayer) {
+                    leafletMap.removeLayer(tempMarkerLayer);
+                }
+
+                const pinIcon = L.divIcon({
+                    className: 'leaflet-temp-pin',
+                    html: `<div class="temp-pin-wrapper">
+                        <svg viewBox="0 0 24 36" width="32" height="48">
+                            <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="#409eff" stroke="#fff" stroke-width="1.5"/>
+                            <circle cx="12" cy="12" r="5" fill="#fff"/>
+                        </svg>
+                        <span class="temp-pin-label">临时标记 (点击吸附)</span>
+                    </div>`,
+                    iconSize: [32, 48],
+                    iconAnchor: [16, 48]
+                });
+
+                tempMarkerLayer = L.marker([tempMarker.lat, tempMarker.lng], { icon: pinIcon })
+                    .addTo(leafletMap);
+
+                tempMarkerLayer.on('click', function (e) {
+                    L.DomEvent.stopPropagation(e);
+                    snapMarkerAsEndpoint(tempMarker.lng, tempMarker.lat);
+                });
+
+                // 脉冲圈
+                const pulse = L.circleMarker([tempMarker.lat, tempMarker.lng], {
+                    radius: 15,
+                    color: '#409eff',
+                    fillColor: '#409eff',
+                    fillOpacity: 0.2,
+                    weight: 1,
+                    className: 'marker-pulse-circle'
+                }).addTo(corridorLayerGroup);
+            }
+        }
+
+        function renderForm() {
+            $('viewList').classList.add('hidden');
+            $('viewForm').classList.remove('hidden');
+            setSidebarHidden(state.mode === 'create');
+
+            // 延迟初始化 Leaflet（需要容器可见后才能计算尺寸）
+            setTimeout(() => {
+                initLeafletMap();
+                leafletMap.invalidateSize();
+
+                // 如果有已有点位，自动适应视图
+                if (state.form.points.length > 0) {
+                    let latLngs = state.form.points.map(p => [p[1], p[0]]);
+                    leafletMap.fitBounds(L.latLngBounds(latLngs).pad(0.3));
+                }
+                drawMap();
+            }, 100);
+        }
+
+        function saveForm() {
+            if (!state.form.name) return showToast('请输入廊道名称', 'error');
+            if (state.form.points.length < 2) return showToast('请在地图上至少绘制2个标点', 'error');
+
+            // 增加廊道层校验
+            for (let i = 0; i < state.layers.length; i++) {
+                const layer = state.layers[i];
+                const height = layer.end - layer.start;
+                const isLow = layer.end <= 1000;
+                const minH = isLow ? 80 : 250;
+                if (height < minH) {
+                    switchTab('layer');
+                    return showToast(`${layer.name}高度不足最低限制`, 'error');
+                }
+                if (layer.width < 500 || layer.width > 5000) {
+                    switchTab('layer');
+                    return showToast(`${layer.name}宽度超出范围`, 'error');
+                }
+            }
+
+            // 将层信息保存到 form 中
+            state.form.layers = JSON.parse(JSON.stringify(state.layers));
+
+            if (state.mode === 'create') {
+                state.form.id = nextId++;
+                corridors.push(state.form);
+                showToast('保存成功');
+            } else {
+                let idx = corridors.findIndex(x => x.id === state.form.id);
+                if (idx > -1) corridors[idx] = state.form;
+                showToast('更新成功');
+            }
+            goList();
+        }
+
+        // ================= 快捷定位控制台 =================
+        const MOCK_NODES = [
+            { id: 'N1', name: '首阳山地面节点', lng: 119.9812, lat: 29.8295, type: 'node' },
+            { id: 'N2', name: '建德通用航空枢纽节点', lng: 119.2134, lat: 29.5909, type: 'node' }
+        ];
+        const MOCK_TAKEOFFS = [
+            { id: 'T1', name: '灵岩山起降点', lng: 120.1551, lat: 30.2741, type: 'takeoff' },
+            { id: 'T2', name: '西溪湿地起降点', lng: 120.1007, lat: 30.2411, type: 'takeoff' },
+            { id: 'T3', name: '钱江新城起降平台', lng: 120.2110, lat: 30.2450, type: 'takeoff' }
+        ];
+
+        let fpSearchTimer = null;
+        let fpHighlightLayer = null;
+
+        document.getElementById('fpKeyword').addEventListener('input', function () {
+            document.getElementById('fpErr').classList.remove('show');
+            clearTimeout(fpSearchTimer);
+            const kw = this.value.trim();
+            if (!kw) {
+                document.getElementById('fpDropdown').classList.remove('show');
+                return;
+            }
+            fpSearchTimer = setTimeout(() => doFastPosSearch(kw), 300);
+        });
+
+        document.getElementById('fpCategory').addEventListener('change', function () {
+            const kw = document.getElementById('fpKeyword').value.trim();
+            if (kw) doFastPosSearch(kw);
+        });
+
+        function triggerFastPosSearch() {
+            const kw = document.getElementById('fpKeyword').value.trim();
+            if (kw) doFastPosSearch(kw);
+        }
+
+        function doFastPosSearch(kw) {
+            if (!kw) kw = document.getElementById('fpKeyword').value.trim();
+            if (!kw) return;
+            const cat = document.getElementById('fpCategory').value;
+            const errEl = document.getElementById('fpErr');
+            const dd = document.getElementById('fpDropdown');
+            errEl.classList.remove('show');
+
+            // Regex matches lng,lat or lng lat with optional dots and negative signs
+            const coordRegex = /^\s*(-?\d+(\.\d+)?)\s*[,，\s]+\s*(-?\d+(\.\d+)?)\s*$/;
+            const coordMatch = kw.match(coordRegex);
+
+            if (cat === 'coord' || (cat === 'all' && coordMatch)) {
+                if (coordMatch) {
+                    const lng = parseFloat(coordMatch[1]);
+                    const lat = parseFloat(coordMatch[3]);
+                    validateAndFlyCoord(lng, lat);
+                    dd.classList.remove('show');
+                } else if (cat === 'coord') {
+                    errEl.classList.add('show');
+                    dd.classList.remove('show');
+                }
+                return;
+            }
+
+            let results = [];
+
+            // 已有廊道 (Corridors)
+            if (cat === 'all' || cat === 'corridor') {
+                const cors = corridors.filter(c => c.status !== '已过期' && (c.name.includes(kw) || (c.id + '').includes(kw)));
+                results.push(...cors.map(c => ({ ...c, type: 'corridor' })));
+            }
+            // 起降点 (Takeoffs)
+            if (cat === 'all' || cat === 'takeoff') {
+                const takes = MOCK_TAKEOFFS.filter(t => t.name.includes(kw));
+                results.push(...takes.map(t => ({ ...t, type: 'takeoff' })));
+            }
+            // 地面节点 (Nodes)
+            if (cat === 'all' || cat === 'node') {
+                const nodes = MOCK_NODES.filter(n => n.name.includes(kw));
+                results.push(...nodes.map(n => ({ ...n, type: 'node' })));
+            }
+
+            if (results.length === 0) {
+                dd.innerHTML = '<div class="fp-item" style="justify-content:center;color:#909399;">未找到相关结果</div>';
+            } else {
+                dd.innerHTML = results.map(r => {
+                    let icon = 'ri-map-pin-2-line';
+                    let typeName = '';
+                    if (r.type === 'corridor') { icon = 'ri-road-map-line'; typeName = ' 已有廊道'; }
+                    if (r.type === 'takeoff') { icon = 'ri-flight-takeoff-line'; typeName = ' 起降点'; }
+                    if (r.type === 'node') { icon = 'ri-base-station-line'; typeName = ' 地面节点'; }
+
+                    return `<div class="fp-item" onclick="selectFPResult('${r.type}', '${r.id}')">
+                        <span style="color:#409eff; font-size:16px;"><i class="${icon}"></i></span>
+                        <div style="flex:1; line-height:1.4;">
+                            <div style="font-size:13px; color:#cfd3dc;">${highlightTextFP(r.name, kw)}</div>
+                            <div style="font-size:11px; color:rgba(255,255,255,0.4);">${typeName}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+            dd.classList.add('show');
+        }
+
+        function highlightTextFP(text, keyword) {
+            if (!keyword) return esc(text);
+            const idx = text.indexOf(keyword);
+            if (idx === -1) return esc(text);
+            return esc(text.substring(0, idx)) +
+                '<span style="color:#409eff;font-weight:600;">' + esc(keyword) + '</span>' +
+                esc(text.substring(idx + keyword.length));
+        }
+
+        function validateAndFlyCoord(lng, lat) {
+            if (isNaN(lng) || isNaN(lat) || lng < -180 || lng > 180 || lat < -90 || lat > 90) {
+                document.getElementById('fpErr').classList.add('show');
+                return;
+            }
+            flyToPoint(lng, lat);
+            placeTempMarker(lng, lat);
+        }
+
+        function placeTempMarker(lng, lat) {
+            tempMarker = { lng, lat };
+            drawMap();
+            showToast(`已定位至 (${lng.toFixed(6)}, ${lat.toFixed(6)})`, 'success');
+        }
+
+        function selectFPResult(type, strId) {
+            document.getElementById('fpDropdown').classList.remove('show');
+            if (fpHighlightLayer && leafletMap.hasLayer(fpHighlightLayer)) {
+                leafletMap.removeLayer(fpHighlightLayer);
+            }
+
+            if (type === 'corridor') {
+                const id = parseInt(strId);
+                const c = corridors.find(x => x.id === id);
+                if (!c || !c.points || c.points.length === 0) return;
+                let latLngs = c.points.map(p => [p[1], p[0]]);
+                let bounds = L.latLngBounds(latLngs);
+                leafletMap.flyToBounds(bounds.pad(0.3), { duration: 1.5 });
+
+                // Highlight corridor
+                let highlights = L.featureGroup().addTo(leafletMap);
+                if (c.points.length > 2) {
+                    L.polygon(latLngs, { color: '#fff', weight: 4, fillColor: c.color, fillOpacity: 0.5, className: 'corridor-blink-anim' }).addTo(highlights);
+                } else if (c.points.length === 2) {
+                    L.polyline(latLngs, { color: '#fff', weight: 6, opacity: 1, className: 'corridor-blink-anim' }).addTo(highlights);
+                }
+                fpHighlightLayer = highlights;
+                setTimeout(() => { if (fpHighlightLayer === highlights && leafletMap.hasLayer(fpHighlightLayer)) leafletMap.removeLayer(fpHighlightLayer); }, 3000);
+
+            } else if (type === 'takeoff' || type === 'node') {
+                let item = MOCK_TAKEOFFS.find(x => x.id === strId) || MOCK_NODES.find(x => x.id === strId);
+                if (!item) return;
+                flyToPoint(item.lng, item.lat);
+
+                // Highlight point flash for 3s
+                let hl = L.circleMarker([item.lat, item.lng], {
+                    radius: 12, color: '#f56c6c', fillColor: '#f56c6c', fillOpacity: 0.5, weight: 2,
+                    className: 'fp-point-flash'
+                }).addTo(leafletMap);
+                fpHighlightLayer = hl;
+                setTimeout(() => { if (fpHighlightLayer === hl && leafletMap.hasLayer(fpHighlightLayer)) leafletMap.removeLayer(fpHighlightLayer); }, 3000);
+            }
+
+        }
+
+        // ---------- 通用: 真实地图飞行 ----------
+        function flyToPoint(lng, lat) {
+            if (!leafletMap) return;
+            leafletMap.flyTo([lat, lng], 15, {
+                duration: 1.5,
+                easeLinearity: 0.25
+            });
+        }
+
+        function snapMarkerAsEndpoint(lng, lat) {
+            if (event) event.stopPropagation();
+            state.form.points.push([lng, lat]);
+            if (state.form.points.length === 1) {
+                showToast('已将标记吸附为廊道1号点', 'success');
+            } else {
+                showToast(`已将标记添加为廊道${state.form.points.length}号点`, 'success');
+            }
+            tempMarker = null;
+            if (tempMarkerLayer) {
+                leafletMap.removeLayer(tempMarkerLayer);
+                tempMarkerLayer = null;
+            }
+            renderPointsList();
+            drawMap();
+        }
+
+        // ========== boot ==========
+        init();
+    </script>
+</body>
+
+</html>
