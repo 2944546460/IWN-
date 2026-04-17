@@ -1,0 +1,164 @@
+/* ============================================================
+   全局基础样式 + Tailwind 指令
+   ============================================================ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- CSS 变量 / Design Tokens ---------- */
+:root {
+  --color-brand:          #004b9e;
+  --color-brand-light:    #1a73e8;
+  --color-brand-dark:     #003580;
+  --color-page-bg:        #f0f2f5;
+  --color-sidebar-bg:     #0e2246;
+  --color-header-bg:      #004b9e;
+  --header-height:        64px;
+  --sidebar-width:        200px;
+  --sidebar-collapsed-width: 60px;
+
+  /* 文字色阶 */
+  --text-primary:   #1f2329;
+  --text-regular:   #606266;
+  --text-secondary: #909399;
+  --text-placeholder: #c0c4cc;
+
+  /* 边框 */
+  --border-color:     #dcdfe6;
+  --border-color-light: #ebeef5;
+  --border-color-extra: #f2f6fc;
+
+  /* 语义颜色 */
+  --color-success: #67c23a;
+  --color-warning: #e6a23c;
+  --color-danger:  #f56c6c;
+  --color-info:    #909399;
+  --color-primary: #1890ff;
+}
+
+/* ---------- 基础重置 ---------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #app {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB",
+               "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+  background-color: var(--color-page-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- Element Plus 全局覆盖 ---------- */
+/* 主色调统一为品牌色 */
+:root {
+  --el-color-primary: #004b9e;
+  --el-color-primary-light-3: #1a73e8;
+  --el-color-primary-light-5: #66a3d2;
+  --el-color-primary-light-7: #a8c8e8;
+  --el-color-primary-light-8: #c5d9ed;
+  --el-color-primary-light-9: #e0ecf6;
+  --el-color-primary-dark-2:  #003580;
+}
+
+/* ---------- 全局工具类（非 Tailwind 覆盖的部分） ---------- */
+.page-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.main-wrap {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.content-area {
+  flex: 1;
+  overflow: auto;
+  background: var(--color-page-bg);
+}
+
+/* ---------- 卡片标题装饰 ---------- */
+.card-title-bar {
+  position: relative;
+  padding-left: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.card-title-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 4px;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+
+/* ---------- 状态微标 ---------- */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.badge-normal   { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
+.badge-warning  { background: #fdf6ec; color: #e6a23c; border: 1px solid #faecd8; }
+.badge-critical { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+.badge-info     { background: #f4f4f5; color: #909399; border: 1px solid #e9e9eb; }
+
+/* ---------- 进度条 ---------- */
+.progress-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.progress-box {
+  flex: 1;
+  min-width: 60px;
+  height: 8px;
+  border-radius: 4px;
+  background: #ebeef5;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  transition: width .3s, background .3s;
+  border-radius: 4px;
+}
+.progress-val {
+  width: 36px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-regular);
+}
