@@ -7,7 +7,8 @@ export interface SideMenuItem {
   key: string
   title: string
   icon: string
-  path: string
+  path?: string // Make path optional for parent nodes
+  children?: SideMenuItem[] // Support nested children
 }
 
 const routes: RouteRecordRaw[] = [
@@ -120,12 +121,23 @@ const routes: RouteRecordRaw[] = [
       topNav: 'health',
       sideMenu: [
         { key: 'monitor',    title: '健康监控', icon: 'ri-macbook-line',       path: '/health/monitor'    },
-        { key: 'assessment', title: '健康评估', icon: 'ri-shield-check-line', path: '/health/assessment' },
+        { 
+          key: 'assessment', 
+          title: '健康评估', 
+          icon: 'ri-shield-check-line', 
+          children: [
+            { key: 'system', title: '系统健康评估', icon: 'ri-file-chart-line', path: '/health/system' },
+            { key: 'uav-threshold', title: '飞行器健康阈值设置', icon: 'ri-flight-takeoff-line', path: '/health/uav-threshold' },
+            { key: 'node-threshold', title: '节点健康阈值设置', icon: 'ri-node-tree', path: '/health/node-threshold' },
+          ]
+        },
       ] as SideMenuItem[],
     },
     children: [
-      { path: 'monitor',    name: 'HealthMonitor',    component: () => import('@/views/health/HealthMonitor.vue'),    meta: { title: '健康监控', sideMenuKey: 'monitor',    topNav: 'health' } },
-      { path: 'assessment', name: 'HealthAssessment', component: () => import('@/views/health/HealthAssessment.vue'), meta: { title: '健康评估', sideMenuKey: 'assessment', topNav: 'health' } },
+      { path: 'monitor',        name: 'HealthMonitor',    component: () => import('@/views/health/HealthMonitor.vue'),     meta: { title: '健康监控', sideMenuKey: 'monitor',    topNav: 'health' } },
+      { path: 'system',         name: 'SystemAssessment', component: () => import('@/views/health/SystemAssessment.vue'),  meta: { title: '系统健康评估', sideMenuKey: 'system', topNav: 'health' } },
+      { path: 'uav-threshold',  name: 'UavThreshold',     component: () => import('@/views/health/UavThreshold.vue'),      meta: { title: '飞行器健康阈值设置', sideMenuKey: 'uav-threshold', topNav: 'health' } },
+      { path: 'node-threshold', name: 'NodeThreshold',    component: () => import('@/views/health/NodeThreshold.vue'),     meta: { title: '节点健康阈值设置', sideMenuKey: 'node-threshold', topNav: 'health' } },
     ],
   },
 

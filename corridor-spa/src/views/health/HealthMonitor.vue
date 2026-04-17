@@ -249,12 +249,12 @@ function initCharts() {
   }
 
   if (uavChartRef.value) {
-    uavChart = echarts.init(uavChartRef.value)
+    uavChart = echarts.init(uavChartRef.value, null, { renderer: 'svg' })
     uavChart.setOption(commonOption)
   }
 
   if (nodeChartRef.value) {
-    nodeChart = echarts.init(nodeChartRef.value)
+    nodeChart = echarts.init(nodeChartRef.value, null, { renderer: 'svg' })
     nodeChart.setOption(commonOption)
   }
 }

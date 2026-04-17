@@ -204,7 +204,7 @@ const timeTabs = [
   { key: 'today', label: '今日' },
   { key: 'week',  label: '近一周' },
   { key: 'month', label: '近一月' },
-]
+] as const
 const activeTab = ref<'today' | 'week' | 'month'>('today')
 
 function buildChartOption(range: string) {
@@ -246,7 +246,7 @@ function switchTab(key: 'today' | 'week' | 'month') {
 
 function initChart() {
   if (!chartRef.value) return
-  chart = echarts.init(chartRef.value)
+  chart = echarts.init(chartRef.value, null, { renderer: 'svg' })
   chart.setOption(buildChartOption(activeTab.value))
 }
 
