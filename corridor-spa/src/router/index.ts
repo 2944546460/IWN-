@@ -97,15 +97,17 @@ const routes: RouteRecordRaw[] = [
     meta: {
       topNav: 'aircraft',
       sideMenu: [
-        { key: 'data-acq',    title: '获取数据维护',   icon: 'ri-radar-line',    path: '/aircraft/data-acquisition' },
-        { key: 'history',     title: '历史数据管理',   icon: 'ri-history-line',  path: '/aircraft/history'          },
-        { key: 'ac-maintain', title: '飞行器维保管理', icon: 'ri-tools-line',    path: '/aircraft/maintenance'      },
+        { key: 'data-acq',    title: '在飞飞行器管理', icon: 'ri-flight-takeoff-line', path: '/aircraft/data-acquisition' },
+        { key: 'ac-maintain', title: '飞行器信息维护', icon: 'ri-information-line',    path: '/aircraft/maintenance'      },
+        { key: 'history',     title: '流控数据管理',   icon: 'ri-base-station-line',   path: '/aircraft/history'          },
+        { key: 'debug',       title: '飞行器调试管理', icon: 'ri-tools-fill',          path: '/aircraft/debug'            },
       ] as SideMenuItem[],
     },
     children: [
-      { path: 'data-acquisition', name: 'DataAcquisition',    component: () => import('@/views/aircraft/DataAcquisition.vue'),    meta: { title: '获取数据维护',   sideMenuKey: 'data-acq',    topNav: 'aircraft' } },
-      { path: 'history',          name: 'HistoryData',         component: () => import('@/views/aircraft/HistoryData.vue'),         meta: { title: '历史数据管理',   sideMenuKey: 'history',     topNav: 'aircraft' } },
-      { path: 'maintenance',      name: 'AircraftMaintenance', component: () => import('@/views/aircraft/AircraftMaintenance.vue'), meta: { title: '飞行器维保管理', sideMenuKey: 'ac-maintain', topNav: 'aircraft' } },
+      { path: 'data-acquisition', name: 'DataAcquisition',    component: () => import('@/views/aircraft/DataAcquisition.vue'),    meta: { title: '在飞飞行器管理', sideMenuKey: 'data-acq',    topNav: 'aircraft' } },
+      { path: 'maintenance',      name: 'AircraftMaintenance', component: () => import('@/views/aircraft/AircraftMaintenance.vue'), meta: { title: '飞行器信息维护', sideMenuKey: 'ac-maintain', topNav: 'aircraft' } },
+      { path: 'history',          name: 'HistoryData',         component: () => import('@/views/aircraft/HistoryData.vue'),         meta: { title: '流控数据管理',   sideMenuKey: 'history',     topNav: 'aircraft' } },
+      { path: 'debug',            name: 'AircraftDebug',       component: () => import('@/views/aircraft/AircraftDebug.vue'),       meta: { title: '飞行器调试管理', sideMenuKey: 'debug',       topNav: 'aircraft' } },
     ],
   },
 
