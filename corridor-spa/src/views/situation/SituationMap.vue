@@ -1,269 +1,386 @@
 <template>
-  <div class="situation-map-page">
-    <!-- 地图主容器 -->
-    <div id="mapContainer" class="map-container" />
+  <div class="situation-map-wrapper relative w-full h-full bg-[#0a1628] overflow-hidden">
+    <!-- 地图底层容器 -->
+    <div id="leaflet-map-container" class="absolute inset-0 z-0"></div>
 
-    <!-- 浮动信息面板区域（绝对定位） -->
-    <div class="float-panels-container">
-      <!-- 告警跑马灯 -->
-      <div v-if="alerts.length > 0" class="alert-marquee">
-        <i class="ri-alarm-warning-line text-red-500 mr-2 text-lg"></i>
-        <div class="marquee-content">
-          <span v-for="a in alerts" :key="a.id" class="mr-8">
-            <span :class="a.level === 'error' ? 'text-red-400' : 'text-orange-400'">[{{ a.level === 'error' ? '严重' : '警告' }}]</span>
-            {{ a.time }} - {{ a.content }}
-          </span>
+    <!-- 顶部搜寻栏 (绝对定位) -->
+    <div class="search-bar absolute top-6 left-6 z-10 
+      flex items-center 
+      w-[260px] h-[36px] 
+      bg-[rgba(10,22,40,0.6)] backdrop-blur-md 
+      border border-[#00beff]/40 shadow-[inset_0_0_10px_rgba(0,190,255,0.2)]">
+      <input type="text" placeholder="搜索位置、航线、起降点..." 
+        class="flex-1 h-full px-3 text-[13px] bg-transparent text-white border-none outline-none placeholder-[rgba(255,255,255,0.5)]" />
+      <div class="w-10 h-full flex items-center justify-center text-[#00beff] cursor-pointer hover:bg-[#00beff]/10 transition cursor-pointer">
+        <el-icon><Search /></el-icon>
+      </div>
+    </div>
+
+    <!-- 左侧浮动面板区 -->
+    <div class="left-panels absolute top-[72px] left-6 z-10 flex flex-col gap-6 w-[260px] max-h-[calc(100vh-100px)] pointer-events-none">
+      
+      <!-- 空域列表 -->
+      <div class="hud-panel pointer-events-auto flex flex-col">
+        <div class="panel-header" @click="uiState.showAirspace = !uiState.showAirspace">
+          <div class="title-tech">
+            <span class="bracket">[</span>
+            <el-icon class="arrow"><CaretRight /></el-icon>
+            <span class="text">空域列表</span>
+            <el-icon class="arrow"><CaretLeft /></el-icon>
+            <span class="bracket">]</span>
+          </div>
+        </div>
+        <div class="panel-body transition-all duration-300" :class="{ 'max-h-[350px] opacity-100': uiState.showAirspace, 'max-h-0 opacity-0 overflow-hidden': !uiState.showAirspace }">
+          <div class="airspace-list p-2 flex flex-col gap-1 overflow-y-auto max-h-[300px] custom-scrollbar">
+            <div 
+              v-for="(item, idx) in AIRSPACES" :key="idx" 
+              class="hud-list-item flex items-center gap-3 p-2 cursor-pointer transition-colors" 
+              :class="{ 'bg-[#00beff]/20 border-l-2 border-[#00beff]': activeAirspaces.includes(idx), 'hover:bg-white/5 border-l-2 border-transparent': !activeAirspaces.includes(idx) }"
+              @click="toggleAirspace(idx)">
+              <!-- Icon -->
+              <div class="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center text-white/70">
+                 <el-icon class="text-[16px]"><component :is="item.icon" /></el-icon>
+              </div>
+              <!-- Text -->
+              <div class="flex-1 min-w-0 flex flex-col">
+                <span class="text-[13px] text-white/90 truncate">{{ item.name }}</span>
+                <span class="text-[10px] text-white/40 mt-0.5 font-mono">{{ item.desc }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="flex gap-4 h-full">
-        <!-- 飞行任务面板 -->
-        <div class="glass-panel w-[320px] flex flex-col pointer-events-auto">
-          <div class="panel-header">
-            <i class="ri-flight-takeoff-line mr-2"></i> 实时任务架次 ({{ tasks.length }})
-          </div>
-          <div class="panel-body">
-            <div v-for="t in tasks" :key="t.id" class="task-card">
-              <div class="flex justify-between items-center mb-1">
-                <span class="font-bold text-blue-300">{{ t.aircraft }}</span>
-                <el-tag size="small" type="success" effect="dark" v-if="t.status === 'flying'">在飞</el-tag>
-              </div>
-              <div class="text-[13px] text-gray-300">任务: {{ t.name }}</div>
-              <div class="text-[13px] text-gray-400 mt-1"><i class="ri-map-pin-line"></i> {{ t.corridor }}</div>
-            </div>
-            <el-empty v-if="tasks.length === 0" description="暂无活动任务" :image-size="60" />
+      <!-- 廊道列表 -->
+      <div class="hud-panel pointer-events-auto flex flex-col">
+        <div class="panel-header" @click="uiState.showCorridor = !uiState.showCorridor">
+          <div class="title-tech">
+            <span class="bracket">[</span>
+            <el-icon class="arrow"><CaretRight /></el-icon>
+            <span class="text">廊道列表</span>
+            <el-icon class="arrow"><CaretLeft /></el-icon>
+            <span class="bracket">]</span>
           </div>
         </div>
-
-        <!-- 基础设施面板（廊道/空域） -->
-        <div class="glass-panel w-[320px] flex flex-col pointer-events-auto mt-auto">
-          <div class="panel-header">
-            <i class="ri-exchange-line mr-2"></i> 廊道与空域状态
+        <div class="panel-body transition-all duration-300" :class="{ 'max-h-[350px] opacity-100': uiState.showCorridor, 'max-h-0 opacity-0 overflow-hidden': !uiState.showCorridor }">
+          <div class="corridor-list p-2 flex flex-col gap-1 overflow-y-auto max-h-[300px] custom-scrollbar">
+            <div v-for="(item, idx) in CORRIDORS" :key="idx" class="hud-list-item hover:bg-white/5 p-2 flex justify-between items-center transition-colors cursor-pointer" @click="focusCorridor(idx)">
+              <div class="flex items-start gap-2 max-w-[85%]">
+                <el-checkbox v-model="corridorVisibility[idx]" @click.stop @change="updateCorridorVisibility(idx)" class="custom-hud-checkbox mt-0.5"></el-checkbox>
+                <div class="flex flex-col">
+                  <span class="text-[13px] text-white/90 truncate">{{ item.name }}</span>
+                  <div class="text-[11px] text-white/40 mt-1 flex justify-between tracking-wide">
+                    <span class="font-mono">廊道状态</span>
+                    <span class="text-white/80 font-mono">{{ item.status }}</span>
+                  </div>
+                </div>
+              </div>
+              <el-icon class="text-white/40"><ArrowRight /></el-icon>
+            </div>
           </div>
-          <div class="panel-body p-0">
-            <el-collapse v-model="activeCol" class="dark-collapse">
-              <el-collapse-item name="1">
-                <template #title><span class="pl-3 font-semibold">主干运行廊道 ({{ corridors.length }})</span></template>
-                <div class="px-3 pb-2 space-y-2">
-                  <div v-for="c in corridors" :key="c.id" class="flex items-center justify-between p-2 rounded bg-[rgba(255,255,255,0.05)] text-sm">
-                    <div class="flex items-center gap-2">
-                      <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: c.color }"></div>
-                      <span class="text-gray-200">{{ c.name }}</span>
-                    </div>
-                    <span :class="c.status === 'on' ? 'text-green-400' : 'text-gray-500'">{{ c.status === 'on' ? '运行中' : '关闭' }}</span>
-                  </div>
-                </div>
-              </el-collapse-item>
-              <el-collapse-item name="2">
-                <template #title><span class="pl-3 font-semibold">空域限制区 ({{ airspaces.length }})</span></template>
-                <div class="px-3 pb-2 space-y-2">
-                  <div v-for="s in airspaces" :key="s.name" class="p-2 rounded bg-[rgba(255,255,255,0.05)] text-sm border-l-2" :style="{ borderColor: s.color }">
-                    <div class="flex justify-between text-gray-200 mb-1">
-                      <span class="font-bold">{{ s.name }}</span> <span>{{ s.height }}</span>
-                    </div>
-                    <div class="text-xs text-gray-400">{{ s.type }} | {{ s.agency }}</div>
-                  </div>
-                </div>
-              </el-collapse-item>
-            </el-collapse>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右侧浮动面板区 -->
+    <div class="right-panels absolute top-6 right-6 z-10 flex flex-col gap-6 w-[260px] max-h-[calc(100vh-100px)] pointer-events-none">
+      
+      <!-- 在飞任务列表 -->
+      <div class="hud-panel h-[230px] pointer-events-auto flex flex-col">
+        <div class="panel-header">
+          <div class="title-tech">
+            <span class="bracket">[</span>
+            <el-icon class="arrow"><CaretRight /></el-icon>
+            <span class="text">在飞任务列表</span>
+            <el-icon class="arrow"><CaretLeft /></el-icon>
+            <span class="bracket">]</span>
+          </div>
+        </div>
+        <div class="panel-body flex-1 p-2 overflow-y-auto custom-scrollbar">
+          <!-- TODO: Empty state for prototype as per screenshot -->
+        </div>
+      </div>
+
+      <!-- 告警列表 -->
+      <div class="hud-panel h-[230px] pointer-events-auto flex flex-col">
+        <div class="panel-header">
+          <div class="title-tech">
+             <span class="bracket">[</span>
+             <el-icon class="arrow"><CaretRight /></el-icon>
+             <span class="text">告警列表</span>
+             <el-icon class="arrow"><CaretLeft /></el-icon>
+             <span class="bracket">]</span>
+          </div>
+        </div>
+        <div class="panel-body flex-1 p-2 overflow-y-auto custom-scrollbar">
+          <!-- TODO: Empty state for prototype as per screenshot -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 右下角工具栏 -->
+    <div class="tool-bar-wrapper absolute bottom-6 right-6 z-10 flex pointer-events-auto">
+      <div class="tool-bar-tech flex items-center bg-[rgba(10,22,40,0.6)] backdrop-blur-md border border-[#00beff]/40 shadow-[inset_0_0_10px_rgba(0,190,255,0.2)]">
+        <!-- 装饰箭头左侧 -->
+        <div class="flex items-center justify-center w-6 h-full text-[#00beff]/50 border-r border-[#00beff]/20">
+          <el-icon><ArrowRightBold /></el-icon>
+        </div>
+        <div class="flex items-center px-2 py-1.5 gap-2">
+          <div v-for="tool in tools" :key="tool.title" 
+              class="w-[34px] h-[34px] flex items-center justify-center rounded-sm cursor-pointer transition-all duration-200"
+              :class="tool.active ? 'bg-[#00beff]/20 text-[#00beff] shadow-[inset_0_0_5px_rgba(0,190,255,0.5)]' : 'text-white/60 hover:bg-white/10 hover:text-white'"
+              @click="toggleTool(tool)"
+              :title="tool.title">
+            <i :class="tool.icon" class="text-[18px]"></i>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import L from 'leaflet'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { Search, CaretRight, CaretLeft, ArrowRight, ArrowRightBold, Position, Location, Opportunity, Guide } from '@element-plus/icons-vue'
 import 'leaflet/dist/leaflet.css'
-import { AIRSPACES, CORRIDORS, FLIGHT_TASKS, ALERT_ITEMS } from '@/mock/situation'
-import type { Airspace, Corridor, FlightTask, AlertItem } from '@/mock/situation'
+import * as L from 'leaflet'
 
-const airspaces = ref<Airspace[]>(AIRSPACES)
-const corridors = ref<Corridor[]>(CORRIDORS)
-const tasks = ref<FlightTask[]>(FLIGHT_TASKS)
-const alerts = ref<AlertItem[]>(ALERT_ITEMS)
-const activeCol = ref(['1'])
+// ---------- Mock Data ----------
+const AIRSPACES = [
+  { name: 'W类空域 (0-120)', desc: 'class W rspace', icon: 'Position', bounds: [[30.15, 119.95], [30.35, 120.35]] },
+  { name: 'G类空域 (120-300)', desc: 'class W rspace', icon: 'Location', bounds: [[30.10, 120.00], [30.40, 120.30]] },
+  { name: 'D/E类空域 (300-1000)', desc: 'class W rspace', icon: 'Opportunity', bounds: [[30.05, 119.90], [30.45, 120.40]] },
+  { name: 'D/E类空域 (1000-3000)', desc: 'class W rspace', icon: 'Guide', bounds: [[30.00, 119.85], [30.50, 120.45]] },
+  { name: 'D类空域 (3000-6000)', desc: 'class W rspace', icon: 'Position', bounds: [[29.95, 119.80], [30.55, 120.50]] }
+]
 
-let map: L.Map | null = null
-let mapLayers: L.Layer[] = []
+const CORRIDORS = [
+  { id: 1, name: '杭千廊道测试路段', status: '生效中', points: [[30.2, 119.8], [30.1, 119.9], [29.9, 119.95]], color: '#A020F0' },
+  { id: 2, name: '西安电子航研院廊...', status: '生效中', points: [[30.15, 120.1], [30.2, 120.0]], color: '#A020F0' },
+  { id: 3, name: '杭甬廊道测试廊道...', status: '生效中', points: [[30.25, 119.20], [30.35, 119.80]], color: '#A020F0' },
+  { id: 4, name: '1631测试', status: '生效中', points: [[30.30, 119.40], [30.30, 120.10]], color: '#A020F0' },
+]
 
-function initMap() {
-  // 由于使用了暗色主题的布局，可以使用带有深色风格的底图或基础OSM
-  map = L.map('mapContainer', {
-    center: [30.25, 120.15],
-    zoom: 11,
-    zoomControl: false,
-    attributionControl: false
-  })
+const tools = reactive([
+  { title: '空间建筑物显隐', icon: 'ri-building-4-line', active: false },
+  { title: '避让区设置', icon: 'ri-forbid-line', active: false },
+  { title: '起降点显隐', icon: 'ri-map-pin-line', active: false },
+  { title: '无人机显隐', icon: 'ri-flight-takeoff-fill', active: false },
+  { title: '基站显隐', icon: 'ri-base-station-line', active: false },
+  { title: '直升机停机坪', icon: 'ri-hospital-line', active: false },
+  { title: '网格化显示', icon: 'ri-grid-line', active: true }
+])
 
-  // 使用高德底图或暗色底图
-  L.tileLayer('http://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineStreetPurplishBlue/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 18,
-  }).addTo(map)
+// ---------- UI State ----------
+const uiState = reactive({
+  showAirspace: true,
+  showCorridor: true
+})
 
-  L.control.zoom({ position: 'bottomright' }).addTo(map)
+const activeAirspaces = ref<number[]>([])
+const corridorVisibility = ref<boolean[]>(CORRIDORS.map(() => true)) 
 
-  drawLayers()
-}
-
-function drawLayers() {
-  if (!map) return
-  mapLayers.forEach(l => l.remove())
-  mapLayers = []
-
-  // 渲染空域
-  airspaces.value.forEach(s => {
-    const layer = L.rectangle(s.bounds, {
-      color: s.color,
-      weight: 2,
-      fillColor: s.color,
-      fillOpacity: 0.15,
-      dashArray: '5, 5'
-    }).bindPopup(`<b>${s.name}</b><br>${s.type} - ${s.height}`)
-    layer.addTo(map!)
-    mapLayers.push(layer)
-  })
-
-  // 渲染廊道
-  corridors.value.forEach(c => {
-    if (c.status !== 'on') return
-    const layer = L.polyline(c.points, {
-      color: c.color,
-      weight: 6,
-      opacity: 0.7
-    }).bindTooltip(c.name, { permanent: false, direction: 'top' })
-    layer.addTo(map!)
-    mapLayers.push(layer)
-  })
-}
+// ---------- Map Logic ----------
+let mapInstance: L.Map | null = null
+const airspaceLayers: Record<number, L.Rectangle> = {}
+const corridorLayers: Record<number, L.Polyline> = {}
 
 onMounted(() => {
   initMap()
 })
 
 onUnmounted(() => {
-  if (map) {
-    map.remove()
-    map = null
+  if (mapInstance) {
+    mapInstance.remove()
   }
 })
+
+function initMap() {
+  mapInstance = L.map('leaflet-map-container', {
+    center: [30.2, 119.9],
+    zoom: 12,
+    zoomControl: false,
+    attributionControl: false
+  })
+
+  // 使用高德卫星图或其他公用图源 
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 18
+  }).addTo(mapInstance)
+
+  L.tileLayer('https://wprd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=8&ltype=4', {
+    subdomains: '1234',
+    maxZoom: 18,
+    opacity: 0.85
+  }).addTo(mapInstance)
+
+  initLayers()
+}
+
+function initLayers() {
+  AIRSPACES.forEach((a, i) => {
+    const rect = L.rectangle(a.bounds as L.LatLngBoundsExpression, {
+      color: '#00beff',
+      weight: 2,
+      fillColor: '#00beff',
+      fillOpacity: 0.1,
+      dashArray: '5, 5'
+    })
+    airspaceLayers[i] = rect
+  })
+
+  CORRIDORS.forEach((c, i) => {
+    const polyline = L.polyline(c.points as L.LatLngExpression[], {
+      color: '#adff2f', // 匹配截图中的亮绿色
+      weight: 40, // 设置得非常宽，呈现条带状
+      opacity: 0.3, // 半透明
+      className: 'tech-corridor'
+    })
+    
+    // 叠加一条中心实线
+    const centerLine = L.polyline(c.points as L.LatLngExpression[], {
+      color: '#adff2f',
+      weight: 4,
+      opacity: 0.8
+    })
+    
+    const group = L.layerGroup([polyline, centerLine])
+    
+    if (corridorVisibility.value[i]) {
+      group.addTo(mapInstance!)
+    }
+    corridorLayers[i] = group as any
+  })
+}
+
+function toggleAirspace(idx: number) {
+  if (!mapInstance) return
+  const activeIdx = activeAirspaces.value.indexOf(idx)
+  
+  if (activeIdx > -1) {
+    activeAirspaces.value.splice(activeIdx, 1)
+    mapInstance.removeLayer(airspaceLayers[idx])
+  } else {
+    activeAirspaces.value.push(idx)
+    mapInstance.addLayer(airspaceLayers[idx])
+    mapInstance.flyToBounds(airspaceLayers[idx].getBounds(), { padding: [50, 50], duration: 0.8 })
+  }
+}
+
+function updateCorridorVisibility(idx: number) {
+  if (!mapInstance) return
+  const isVisible = corridorVisibility.value[idx]
+  if (isVisible) {
+    mapInstance.addLayer(corridorLayers[idx] as any)
+  } else {
+    mapInstance.removeLayer(corridorLayers[idx] as any)
+  }
+}
+
+function focusCorridor(idx: number) {
+  if (!mapInstance) return
+  if (!corridorVisibility.value[idx]) return
+  
+  // 对于 layerGroup，需要使用内部第一个 layer 去 getBounds()，因 TS 限制简写处理
+  const layer = (corridorLayers[idx] as any).getLayers()[0]
+  mapInstance.flyToBounds(layer.getBounds(), { padding: [50, 50], duration: 0.8 })
+}
+
+function toggleTool(tool: any) {
+  tool.active = !tool.active
+}
 </script>
 
 <style scoped>
-.situation-map-page {
-  position: absolute; /* 父级 MapLayout 的 main.map-body 是 relative 且满高 */
-  inset: 0;
-  background: #0a1628;
-  overflow: hidden;
-}
-
-.map-container {
-  position: absolute;
-  inset: 0;
-  z-index: 1; /* leaflet 底图层 */
-}
-
-/* UI 面板覆盖在地图上 */
-.float-panels-container {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  bottom: 20px;
-  left: 20px;
-  z-index: 1000;
-  pointer-events: none; /* 让鼠标穿透点击地图 */
-  display: flex;
-  flex-direction: column;
-}
-
-.pointer-events-auto {
-  pointer-events: auto; /* 恢复面板本身的鼠标响应 */
-}
-
-/* 玻璃拟态面板 */
-.glass-panel {
-  background: rgba(15, 34, 67, 0.85);
+/* ========== HUD 核心面板样式 ========== */
+.hud-panel {
+  background: rgba(10, 22, 40, 0.6);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(64, 158, 255, 0.2);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
+  border: 1px solid rgba(0, 190, 255, 0.25);
+  box-shadow: inset 0 0 15px rgba(0, 190, 255, 0.1), 0 4px 15px rgba(0,0,0,0.3);
 }
 
+/* 科技感标题头 */
 .panel-header {
-  height: 40px;
-  background: linear-gradient(90deg, rgba(64, 158, 255, 0.2) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(0, 190, 255, 0.3);
+  padding: 10px;
+  cursor: pointer;
+  background: linear-gradient(to right, rgba(0,190,255,0.05), transparent);
+}
+
+.title-tech {
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  font-size: 15px;
+  justify-content: center;
+  gap: 6px;
   font-weight: 600;
+  font-size: 14px;
+}
+
+.title-tech .bracket {
+  color: #00beff;
+  font-size: 14px;
+}
+.title-tech .arrow {
+  color: #00beff;
+  font-size: 12px;
+  opacity: 0.8;
+}
+.title-tech .text {
   color: #fff;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  letter-spacing: 1px;
+  text-shadow: 0 0 5px rgba(0,190,255,0.8);
 }
 
-.panel-body {
-  padding: 12px;
-  overflow-y: auto;
-  max-height: calc(100vh - 120px);
+/* 定制复选框在暗黑模式下的表现 */
+:deep(.custom-hud-checkbox .el-checkbox__inner) {
+  background-color: transparent;
+  border: 1px solid rgba(255,255,255,0.4);
+  width: 14px;
+  height: 14px;
+}
+:deep(.custom-hud-checkbox.is-checked .el-checkbox__inner) {
+  background-color: transparent;
+  border-color: #fff;
+}
+:deep(.custom-hud-checkbox.is-checked .el-checkbox__inner::after) {
+  border-color: #fff;
+}
+:deep(.custom-hud-checkbox:hover .el-checkbox__inner) {
+  border-color: #fff;
 }
 
-/* 跑马灯 */
-.alert-marquee {
-  pointer-events: auto;
-  background: rgba(10, 22, 40, 0.9);
-  border: 1px solid #f56c6c;
-  border-radius: 4px;
-  padding: 8px 16px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-  width: 100%;
-  max-width: 600px;
-  align-self: center; /* 居中显示 */
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(245, 108, 108, 0.2);
+/* 右下角工具栏异形处理 (模拟左右切角) */
+.tool-bar-tech {
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
 }
 
-.marquee-content {
-  flex: 1;
-  white-space: nowrap;
-  animation: scroll-left 25s linear infinite;
+/* 自定义暗黑系滚动条 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 2px;
 }
-
-@keyframes scroll-left {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 190, 255, 0.4);
 }
-
-/* 任务卡片 */
-.task-card {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 6px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
-  border-left: 3px solid #67c23a;
-}
-.task-card:last-child { margin-bottom: 0; }
-
-/* 覆盖 ElementUI 折叠面板样式为暗色 */
-:deep(.dark-collapse) {
-  border: none;
-}
-:deep(.dark-collapse .el-collapse-item__header) {
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
-  color: #fff;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
-:deep(.dark-collapse .el-collapse-item__wrap) {
-  background: transparent;
-  border-bottom: none;
+
+/* ========== Leaflet 注入层覆盖 ========== */
+:deep(.leaflet-container) {
+  background: #0a1628;
 }
-:deep(.dark-collapse .el-collapse-item__content) {
-  padding-bottom: 0;
-  color: #ccc;
+
+/* 廊道呼吸光效 */
+@keyframes corridorPulse {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.3; }
+}
+:deep(.tech-corridor) {
+  animation: corridorPulse 3s ease-in-out infinite;
 }
 </style>
