@@ -1,8 +1,12 @@
 <template>
-  <header class="top-header">
+  <header class="top-header z-50">
     <!-- Logo区 -->
-    <div class="logo-box">
-      <span class="brand">廊道运维管理平台</span>
+    <div class="logo-box flex items-center gap-4">
+      <span class="brand text-[20px] font-black italic text-white tracking-wider drop-shadow-md">廊道运维管理平台</span>
+      <!-- 收缩左侧菜单标识 (仅不在廊道态势大屏时显示) -->
+      <div v-if="currentTopNav !== 'situation'" class="menu-fold-btn text-white/70 hover:text-white cursor-pointer transition-colors" title="折叠/展开侧边栏">
+        <el-icon class="text-[18px]"><Fold /></el-icon>
+      </div>
     </div>
 
     <!-- 一级导航 -->
@@ -25,7 +29,7 @@
       <div class="avatar">
         <i class="ri-user-line" />
       </div>
-      <span class="text-sm">Admin</span>
+      <span class="text-sm font-medium">Soybean</span>
     </div>
   </header>
 </template>
@@ -33,6 +37,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { Fold } from '@element-plus/icons-vue'
 
 const route = useRoute()
 
@@ -57,33 +62,26 @@ const currentTopNav = computed(() => {
 
 <style scoped>
 .top-header {
-  height: var(--header-height, 64px);
-  background: var(--color-header-bg, #004b9e);
+  height: 56px;
+  /* 更贴紧截图中的深邃的线性海军蓝渐变 */
+  background: linear-gradient(to right, #003673, #0b5394, #003673);
   color: #fff;
   display: flex;
   align-items: center;
   flex-shrink: 0;
   padding: 0 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  z-index: 100;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .logo-box {
   height: 100%;
-  display: flex;
-  align-items: center;
   flex-shrink: 0;
+  min-width: 220px;
 }
 
 .brand {
-  font-weight: 900;
-  font-size: 20px;
-  font-style: italic;
-  color: #fff;
-  letter-spacing: 1px;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  white-space: nowrap;
+  font-family: Arial, Helvetica, sans-serif; /* 匹配略显硬核厚重的英文字体感 */
 }
 
 .top-nav {
@@ -91,56 +89,57 @@ const currentTopNav = computed(() => {
   height: 100%;
   flex: 1;
   align-items: center;
-  margin-left: 32px;
-  gap: 4px;
+  justify-content: center; /* Added for centering */
+  gap: 16px; /* slightly increased gap based on the screenshot */
 }
 
 .nav-item {
-  color: rgba(255, 255, 255, 0.72);
-  padding: 7px 14px;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 6px 16px;
   display: flex;
   align-items: center;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  transition: all 0.22s;
-  border-radius: 6px;
-  gap: 7px;
+  transition: all 0.2s;
+  border-radius: 4px;
+  gap: 6px;
   text-decoration: none;
   white-space: nowrap;
 }
 
 .nav-item i {
-  font-size: 17px;
+  font-size: 16px;
 }
 
 .nav-item:hover {
   color: #fff;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .nav-item.active {
   color: #fff;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.2);
+  /* 截图中有非常微弱的高光框 */
+  box-shadow: inset 0 0 4px rgba(255,255,255,0.1);
 }
 
 .user-box {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   font-size: 14px;
   color: #fff;
   flex-shrink: 0;
 }
 
 .avatar {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
 }
 </style>
