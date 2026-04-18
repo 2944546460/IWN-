@@ -139,6 +139,51 @@
       </div>
     </div>
 
+    <!-- 左下角图层控制面板 -->
+    <div class="map-layer-control absolute bottom-6 left-6 z-10 flex flex-col items-start gap-2 pointer-events-auto">
+      <!-- 展开的控制面板 -->
+      <div v-show="uiState.showLayerControl" class="hud-panel p-4 mb-1 flex flex-col gap-4 min-w-[180px] text-white/90 text-[13px]">
+        <div>
+           <div class="text-[#00beff] font-bold mb-2 tracking-widest text-[12px] flex items-center gap-2">
+             <i class="ri-map-2-line"></i> 底图样式
+           </div>
+           <el-radio-group v-model="mapState.baseLayer" @change="updateMapLayers" class="flex flex-col gap-2 custom-hud-radio items-start">
+             <el-radio value="satellite">卫星图层</el-radio>
+             <el-radio value="vector">标准电子地图</el-radio>
+           </el-radio-group>
+        </div>
+        <div class="w-full h-px bg-white/10"></div>
+        <div>
+           <div class="text-[#00beff] font-bold mb-2 tracking-widest text-[12px] flex items-center gap-2">
+             <i class="ri-road-map-line"></i> 叠加要素
+           </div>
+           <div class="flex flex-col gap-2 relative">
+             <el-checkbox v-model="mapState.showRoads" @change="updateMapLayers" class="custom-hud-checkbox text-white">显示路网脉络</el-checkbox>
+             
+             <!-- 地名分级展示菜单 -->
+             <div class="flex flex-col gap-1 mt-1">
+               <div class="text-white/60 text-[12px] mb-1">行政地名标注</div>
+               <div class="pl-4 flex flex-col gap-1 border-l border-white/10 ml-1.5">
+                 <el-checkbox v-model="mapState.labels.province" @change="updateMapLayers" class="custom-hud-checkbox text-white">省级/直辖市</el-checkbox>
+                 <el-checkbox v-model="mapState.labels.city" @change="updateMapLayers" class="custom-hud-checkbox text-white">地级市</el-checkbox>
+                 <el-checkbox v-model="mapState.labels.district" @change="updateMapLayers" class="custom-hud-checkbox text-white">区县/街道</el-checkbox>
+               </div>
+             </div>
+             
+           </div>
+        </div>
+      </div>
+
+      <!-- 控制开关按钮 -->
+      <div 
+        @click="uiState.showLayerControl = !uiState.showLayerControl"
+        class="w-[42px] h-[42px] bg-[rgba(10,22,40,0.6)] backdrop-blur-md border border-[#00beff]/40 shadow-[inset_0_0_10px_rgba(0,190,255,0.2)] flex items-center justify-center text-[#00beff] cursor-pointer hover:bg-[#00beff]/20 transition-all rounded-sm"
+        title="图层设置"
+      >
+        <i class="ri-stack-line text-[22px]"></i>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -158,10 +203,10 @@ const AIRSPACES = [
 ]
 
 const CORRIDORS = [
-  { id: 1, name: '杭千廊道测试路段', status: '生效中', points: [[30.2, 119.8], [30.1, 119.9], [29.9, 119.95]], color: '#A020F0' },
-  { id: 2, name: '西安电子航研院廊...', status: '生效中', points: [[30.15, 120.1], [30.2, 120.0]], color: '#A020F0' },
-  { id: 3, name: '杭甬廊道测试廊道...', status: '生效中', points: [[30.25, 119.20], [30.35, 119.80]], color: '#A020F0' },
-  { id: 4, name: '1631测试', status: '生效中', points: [[30.30, 119.40], [30.30, 120.10]], color: '#A020F0' },
+  { id: 1, name: 'G56 杭瑞高速(临安段)测试廊道', status: '正常执行', points: [[30.26, 119.98], [30.25, 119.94], [30.24, 119.87], [30.235, 119.80], [30.23, 119.70], [30.23, 119.60]], color: '#adff2f' },
+  { id: 2, name: 'G25 长深高速(富阳段)巡检廊道', status: '正常执行', points: [[30.13, 120.08], [30.09, 120.05], [30.05, 119.97], [29.97, 119.92], [29.90, 119.87], [29.82, 119.81]], color: '#adff2f' },
+  { id: 3, name: 'S14 杭长高速(径山段)专线廊道', status: '备勤中', points: [[30.35, 120.02], [30.39, 119.98], [30.42, 119.91], [30.46, 119.85], [30.52, 119.77]], color: '#adff2f' },
+  { id: 4, name: 'G60 沪昆高速(萧山段)演示廊道', status: '演练中', points: [[30.21, 120.26], [30.18, 120.30], [30.14, 120.34], [30.08, 120.37], [30.02, 120.41]], color: '#adff2f' },
 ]
 
 const tools = reactive([
@@ -177,7 +222,18 @@ const tools = reactive([
 // ---------- UI State ----------
 const uiState = reactive({
   showAirspace: true,
-  showCorridor: true
+  showCorridor: true,
+  showLayerControl: false
+})
+
+const mapState = reactive({
+  baseLayer: 'satellite', // 'satellite' | 'vector'
+  showRoads: true,
+  labels: {
+    province: true,
+    city: true,
+    district: false
+  }
 })
 
 const activeAirspaces = ref<number[]>([])
@@ -187,6 +243,9 @@ const corridorVisibility = ref<boolean[]>(CORRIDORS.map(() => true))
 let mapInstance: L.Map | null = null
 const airspaceLayers: Record<number, L.Rectangle> = {}
 const corridorLayers: Record<number, L.Polyline> = {}
+let baseMapLayer: L.TileLayer | null = null
+let overlayRoadLayer: L.TileLayer | null = null
+let overlayLabelLayer: L.TileLayer | null = null
 
 onMounted(() => {
   initMap()
@@ -200,24 +259,71 @@ onUnmounted(() => {
 
 function initMap() {
   mapInstance = L.map('leaflet-map-container', {
-    center: [30.2, 119.9],
-    zoom: 12,
+    center: [30.15, 119.95],
+    zoom: 11,
     zoomControl: false,
     attributionControl: false
   })
 
-  // 使用高德卫星图或其他公用图源 
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    maxZoom: 18
-  }).addTo(mapInstance)
-
-  L.tileLayer('https://wprd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=8&ltype=4', {
-    subdomains: '1234',
-    maxZoom: 18,
-    opacity: 0.85
-  }).addTo(mapInstance)
-
+  updateMapLayers()
   initLayers()
+}
+
+function updateMapLayers() {
+  if (!mapInstance) return
+
+  // 1. 清理现有底层
+  if (baseMapLayer) {
+    mapInstance.removeLayer(baseMapLayer)
+  }
+  
+  if (mapState.baseLayer === 'satellite') {
+    // 卫星图
+    baseMapLayer = L.tileLayer('https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}', {
+      subdomains: '1234',
+      maxZoom: 18
+    }).addTo(mapInstance)
+  } else {
+    // 标准电子地图
+    baseMapLayer = L.tileLayer('https://wprd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&x={x}&y={y}&z={z}', {
+      subdomains: '1234',
+      maxZoom: 18
+    }).addTo(mapInstance)
+  }
+
+  // 2. 清理覆盖层
+  if (overlayRoadLayer) {
+    mapInstance.removeLayer(overlayRoadLayer)
+    overlayRoadLayer = null
+  }
+  if (overlayLabelLayer) {
+    mapInstance.removeLayer(overlayLabelLayer)
+    overlayLabelLayer = null
+  }
+
+  const anyLabels = mapState.labels.province || mapState.labels.city || mapState.labels.district;
+
+  // 如果是在卫星图模式下并勾选了显示要素，才叠加特定图层
+  if (mapState.baseLayer === 'satellite') {
+    // 高德瓦片隐藏参数：ltype=11(仅路网)，ltype=4(仅地名)
+    if (mapState.showRoads) {
+      overlayRoadLayer = L.tileLayer('https://wprd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=8&ltype=11', {
+        subdomains: '1234',
+        maxZoom: 18,
+        opacity: 0.45,       // [大幅降低透明度]：让细小的白色网状小路在深色卫星图上隐身，只凸显出黄色的主干道和省道
+        className: 'de-clutter-road' // 注入 CSS 类用于进一步的滤镜柔化
+      }).addTo(mapInstance)
+    }
+
+    if (anyLabels) {
+      // 在底层瓦片不原生支持高精度行政分离切片的情况下，用 UI 组件实现业务产品表现层交互
+      overlayLabelLayer = L.tileLayer('https://wprd0{s}.is.autonavi.com/appmaptile?x={x}&y={y}&z={z}&lang=zh_cn&size=1&scl=1&style=8&ltype=4', {
+        subdomains: '1234',
+        maxZoom: 18,
+        opacity: 0.95
+      }).addTo(mapInstance)
+    }
+  }
 }
 
 function initLayers() {
@@ -344,13 +450,35 @@ function toggleTool(tool: any) {
 }
 :deep(.custom-hud-checkbox.is-checked .el-checkbox__inner) {
   background-color: transparent;
-  border-color: #fff;
+  border-color: #00beff;
 }
 :deep(.custom-hud-checkbox.is-checked .el-checkbox__inner::after) {
-  border-color: #fff;
+  border-color: #00beff;
 }
 :deep(.custom-hud-checkbox:hover .el-checkbox__inner) {
-  border-color: #fff;
+  border-color: #00beff;
+}
+
+/* 保证单选框和复选框文字颜色 */
+:deep(.custom-hud-radio .el-radio__label),
+:deep(.custom-hud-checkbox .el-checkbox__label) {
+  color: rgba(255, 255, 255, 0.7);
+}
+:deep(.custom-hud-radio .el-radio__input.is-checked + .el-radio__label),
+:deep(.custom-hud-checkbox .el-checkbox__input.is-checked + .el-checkbox__label) {
+  color: #00beff;
+}
+/* 暗黑系单选圆圈 */
+:deep(.custom-hud-radio .el-radio__inner) {
+  background-color: transparent;
+  border-color: rgba(255,255,255,0.4);
+}
+:deep(.custom-hud-radio .el-radio__input.is-checked .el-radio__inner) {
+  background-color: transparent;
+  border-color: #00beff;
+}
+:deep(.custom-hud-radio .el-radio__inner::after) {
+  background-color: #00beff;
 }
 
 /* 右下角工具栏异形处理 (模拟左右切角) */
@@ -382,5 +510,10 @@ function toggleTool(tool: any) {
 }
 :deep(.tech-corridor) {
   animation: corridorPulse 3s ease-in-out infinite;
+}
+
+/* 弱化小路网干扰，增加对比度让粗的黄/橙色主干道凸显，白色细线被暗化 */
+:deep(.de-clutter-road) {
+  filter: contrast(1.5) brightness(0.8) sepia(0.2) hue-rotate(-10deg);
 }
 </style>
