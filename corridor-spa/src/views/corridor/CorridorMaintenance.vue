@@ -126,8 +126,13 @@ function resetFilters() {
   Object.assign(filter, { corridorId: '', name: '', airspace: '' })
   doSearch()
 }
+import { useRouter } from 'vue-router'
 
-function handleCreate() {}
+const router = useRouter()
+
+function handleCreate() {
+  router.push('/corridor/create')
+}
 function handleBatchDelete() {}
 </script>
 

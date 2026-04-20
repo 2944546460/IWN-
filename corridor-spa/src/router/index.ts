@@ -23,6 +23,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/situation/SituationMap.vue'),
         meta: { title: '廊道态势显示', topNav: 'situation' },
       },
+      {
+        path: 'corridor/create',
+        name: 'CreateCorridor',
+        component: () => import('@/views/corridor/CreateCorridor.vue'),
+        meta: { title: '新建廊道', topNav: 'corridor' },
+      },
     ],
   },
 
