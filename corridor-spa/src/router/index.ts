@@ -44,7 +44,16 @@ const routes: RouteRecordRaw[] = [
         { key: 'turn-zone',            title: '转弯区信息维护', icon: 'ri-refresh-line',         path: '/corridor/turn-zone'      },
         { key: 'landing-point',        title: '起降点信息维护', icon: 'ri-flight-land-line',     path: '/corridor/landing-point'  },
         { key: 'emergency-point',      title: '应急点信息维护', icon: 'ri-first-aid-kit-line',   path: '/corridor/emergency-point'},
-        { key: 'weather-env',          title: '气象环境维护',   icon: 'ri-cloud-windy-line',     path: '/corridor/weather-env'    },
+        { 
+          key: 'weather-env', 
+          title: '气象环境维护', 
+          icon: 'ri-cloud-windy-line', 
+          children: [
+            { key: 'weather-sync', title: '气象实况管理', path: '/corridor/weather-sync' },
+            { key: 'weather-rule', title: '机型预警管理', path: '/corridor/weather-rule' },
+            { key: 'weather-nfz',  title: '气象禁飞总览', path: '/corridor/weather-nfz' },
+          ]
+        },
         { key: 'airspace-route',       title: '空域与航路维护', icon: 'ri-route-line',           path: '/corridor/airspace-route' },
         { key: 'restricted-area',      title: '受限区域总览',   icon: 'ri-forbid-line',          path: '/corridor/restricted-area'},
       ] as SideMenuItem[],
@@ -54,7 +63,9 @@ const routes: RouteRecordRaw[] = [
       { path: 'turn-zone',      name: 'TurnZone',            component: () => import('@/views/corridor/TurnZone.vue'),            meta: { title: '转弯区信息维护', sideMenuKey: 'turn-zone',            topNav: 'corridor' } },
       { path: 'landing-point',  name: 'LandingPoint',        component: () => import('@/views/corridor/LandingPoint.vue'),        meta: { title: '起降点信息维护', sideMenuKey: 'landing-point',        topNav: 'corridor' } },
       { path: 'emergency-point',name: 'EmergencyPoint',      component: () => import('@/views/corridor/EmergencyPoint.vue'),      meta: { title: '应急点信息维护', sideMenuKey: 'emergency-point',      topNav: 'corridor' } },
-      { path: 'weather-env',    name: 'WeatherEnv',          component: () => import('@/views/corridor/WeatherEnv.vue'),          meta: { title: '气象环境维护',   sideMenuKey: 'weather-env',          topNav: 'corridor' } },
+      { path: 'weather-sync',   name: 'WeatherSync',       component: () => import('@/views/corridor/WeatherSync.vue'),       meta: { title: '气象实况管理',   sideMenuKey: 'weather-sync',     topNav: 'corridor' } },
+      { path: 'weather-rule',   name: 'WeatherRule',       component: () => import('@/views/corridor/WeatherRule.vue'),       meta: { title: '机型预警管理',   sideMenuKey: 'weather-rule',     topNav: 'corridor' } },
+      { path: 'weather-nfz',    name: 'WeatherNfz',        component: () => import('@/views/corridor/WeatherNfz.vue'),        meta: { title: '气象禁飞总览',   sideMenuKey: 'weather-nfz',      topNav: 'corridor' } },
       { path: 'airspace-route', name: 'AirspaceRoute',       component: () => import('@/views/corridor/AirspaceRoute.vue'),       meta: { title: '空域与航路维护', sideMenuKey: 'airspace-route',       topNav: 'corridor' } },
       { path: 'restricted-area',name: 'RestrictedArea',      component: () => import('@/views/corridor/RestrictedArea.vue'),      meta: { title: '受限区域总览',   sideMenuKey: 'restricted-area',      topNav: 'corridor' } },
     ],
