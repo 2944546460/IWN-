@@ -29,8 +29,13 @@
     </div>
 
     <!-- 列表区 -->
-    <div class="custom-card flex-1 flex flex-col p-5 overflow-hidden">
-      <div class="text-[14px] font-medium text-[#333] mb-4 leading-none">用户任务信息</div>
+    <div class="custom-card flex-1 flex flex-col p-5 overflow-hidden relative">
+      <div class="flex justify-between items-center mb-4">
+         <div class="text-[14px] font-medium text-[#333] leading-none">用户任务信息</div>
+         <el-button class="custom-btn-primary" @click="showCreateDialog = true">
+           <el-icon class="mr-1"><Plus /></el-icon> 新建飞行任务
+         </el-button>
+      </div>
 
       <!-- 数据表格 -->
       <el-table 
@@ -59,23 +64,78 @@
 
       <!-- 分页栏 -->
       <div class="flex justify-end items-center mt-4 text-[13px] text-[#8c8c8c]">
-        <span class="mr-4">共 303 条</span>
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.pageSize"
-          :total="303"
-          :page-sizes="[10, 20, 50]"
-          layout="prev, pager, next, sizes, jumper"
-          background
-          class="custom-pagination"
-        />
       </div>
     </div>
+
+    <!-- =============== 新建任务对话框 =============== -->
+    <el-dialog v-model="showCreateDialog" title="新建飞行任务" width="500px" destroy-on-close :close-on-click-modal="false" class="custom-radius-dialog">
+      <el-form label-position="top" class="custom-light-form">
+        <el-form-item label="任务名称" required>
+          <el-input v-model="newTask.name" placeholder="请输入任务名称" class="custom-el-input" />
+        </el-form-item>
+        <el-form-item label="拟执飞机型" required>
+          <el-select v-model="newTask.uavType" placeholder="选择作业无人机型" class="w-full custom-el-select">
+            <el-option label="大疆 M300 (抗风弱)" value="DJI" />
+            <el-option label="微型四旋翼 (微风)" value="Micro_Quadcopter" />
+            <el-option label="固定翼无人机 (巡航)" value="FixedWing_Light" />
+            <el-option label="工业级防雨大负载" value="Heavy_Industry" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="任务预计起飞时间窗口" required>
+          <el-select v-model="newTask.timeOffset" placeholder="请选择时间偏移" class="w-full custom-el-select">
+            <el-option v-for="h in [0, 3, 6, 9, 12, 24]" :key="h" :label="h === 0 ? '即刻 (当前实况)' : `稍后 (未来 ${h} 小时)`" :value="h" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showCreateDialog = false" class="custom-btn">取消</el-button>
+          <el-button type="primary" @click="submitCreate" class="custom-btn-primary">保存任务</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- =============== 气象预警拦截弹窗 (Weather Conflict) =============== -->
+    <el-dialog v-model="showInterceptDialog" title="系统安全拦截" width="520px" :show-close="false" :close-on-click-modal="false" class="custom-danger-dialog">
+      <div class="flex items-start gap-4">
+        <div class="text-[40px] text-[#ff4d4f] leading-none mt-1"><i class="ri-error-warning-fill"></i></div>
+        <div class="flex-1">
+          <div class="font-bold text-[#ff4d4f] text-[16px] mb-2 font-mono">WARNING: 遭遇气象禁飞区阻断</div>
+          <div class="text-[14px] text-[#595959] leading-relaxed bg-[#fff1f0] border border-[#ffa39e] p-3 rounded">
+            <p class="mb-1 text-[#434343]">检测到您的任务属性与当前气象管制规则严重冲突：</p>
+            <ul class="list-disc ml-5 my-2 text-[#ff4d4f] font-bold">
+               <li>管制区域：{{ conflictInfo?.name }}</li>
+               <li>异常气象：{{ conflictInfo?.reason }}</li>
+            </ul>
+            <p class="text-[#cf1322]">
+               根据系统判定，您的选中机型 <span class="bg-[#ff4d4f] text-white px-2 py-0.5 rounded mx-1">{{ newTask.uavType }}</span> 因抗风雨指标不达标，在该时段内被**禁止**划入此空域！
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 bg-[#f6ffed] border border-[#b7eb8f] rounded p-3 text-[14px] text-[#389e0d]">
+         <div class="font-bold mb-1 flex items-center gap-1"><i class="ri-lightbulb-flash-line text-[16px]"></i> AI 智能推荐</div>
+         <div>通过预测推演，系统预估在 <strong>未来 {{ conflictInfo?.suggestTime }} 小时</strong> 之后气象管制将解除。是否一键调整任务时段为您规避风险？</div>
+      </div>
+      <template #footer>
+        <div class="flex justify-between items-center w-full">
+           <span class="text-[#8c8c8c] text-[12px]">安全第一，防患未然</span>
+           <div>
+             <el-button @click="showInterceptDialog = false" class="custom-btn">驳回并手动修改</el-button>
+             <el-button type="success" class="custom-btn" style="background:#52c41a; color:white; border-color:#52c41a;" @click="applySuggestion">接受推荐时段并提交</el-button>
+           </div>
+        </div>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
+import { Plus } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { mockNoFlyZones } from '@/mock/weatherData'
 
 const loading = ref(false)
 const filter = reactive({ taskId: '', taskName: '' })
@@ -112,6 +172,67 @@ function doSearch() {
 function resetFilters() {
   Object.assign(filter, { taskId: '', taskName: '' })
   doSearch()
+}
+
+// ========== 对话框与表单状态 ==========
+const showCreateDialog = ref(false)
+const showInterceptDialog = ref(false)
+
+const newTask = reactive({
+  name: '',
+  uavType: '',
+  timeOffset: 0
+})
+
+const conflictInfo = ref<{ name: string, reason: string, suggestTime: number } | null>(null)
+
+// 提交审核（执行防撞校验）
+function submitCreate() {
+  if (!newTask.name || !newTask.uavType || newTask.timeOffset === null) {
+    ElMessage.warning('请补全必填信息')
+    return
+  }
+
+  // 1. 拦截引擎核心：遍历气象数据池检查冲突
+  for (const nfz of mockNoFlyZones) {
+    // 检查时间是否重叠
+    const isTimeClash = newTask.timeOffset >= nfz.effectiveTimeRange[0] && newTask.timeOffset <= nfz.effectiveTimeRange[1]
+    // 检查机型是否被限制 (ALL 或 精确命中)
+    const isUavClash = nfz.restrictedUavTypes.includes('ALL') || nfz.restrictedUavTypes.includes(newTask.uavType)
+
+    if (isTimeClash && isUavClash) {
+      // 触发展现安全阻断 UI
+      conflictInfo.value = {
+        name: nfz.name,
+        reason: nfz.reason,
+        suggestTime: nfz.effectiveTimeRange[1] + 3 // 推荐解除管控后的下一个可用时段
+      }
+      showCreateDialog.value = false
+      showInterceptDialog.value = true
+      return // 强制阻断代码向下执行
+    }
+  }
+
+  // 如果风平浪静无拦截
+  handleSuccessSave()
+}
+
+function applySuggestion() {
+  if (conflictInfo.value) {
+    newTask.timeOffset = conflictInfo.value.suggestTime
+  }
+  showInterceptDialog.value = false
+  handleSuccessSave()
+}
+
+function handleSuccessSave() {
+  ElMessage.success('校验通过！气象条件良好，任务下发成功。')
+  // 这里在实际业务中进行后端API提交
+  showCreateDialog.value = false
+  // reset
+  newTask.name = ''
+  newTask.uavType = ''
+  newTask.timeOffset = 0
 }
 </script>
 
@@ -237,5 +358,31 @@ function resetFilters() {
   border-radius: 4px;
   height: 28px;
   min-width: 28px;
+}
+
+/* ============ 对话框相关覆写 ============ */
+:deep(.custom-light-form .el-form-item__label) {
+  color: #595959 !important;
+  font-weight: 500 !important;
+  padding-bottom: 4px !important;
+}
+
+:deep(.custom-danger-dialog .el-dialog__header) {
+  background: #fff1f0;
+  border-bottom: 1px solid #ffccc7;
+  margin-right: 0;
+  padding-bottom: 15px;
+}
+:deep(.custom-danger-dialog .el-dialog__title) {
+  color: #cf1322;
+  font-weight: bold;
+}
+:deep(.custom-danger-dialog) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+:deep(.custom-danger-dialog .el-dialog__footer) {
+  border-top: 1px solid #e8e8e8;
+  background: #fafafa;
 }
 </style>
