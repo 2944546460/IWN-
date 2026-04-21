@@ -50,7 +50,7 @@ const tableData = ref([
 
 const currentPage = ref(1)
 const pageSize = ref(10)
-const total = ref(165)
+const total = ref(20)
 
 // ---- 方法 ----
 const handleSearch = () => {
@@ -247,13 +247,14 @@ const handleRelease = (row: any) => {
       </div>
 
       <!-- 分页器 -->
-      <div class="shrink-0 flex justify-end mt-4">
+      <div class="shrink-0 flex justify-end mt-4 text-[13px] text-[#8c8c8c]">
         <el-pagination
+          class="custom-pagination"
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50, 100]"
-          :background="true"
-          layout="total, sizes, prev, pager, next, jumper"
+          :background="false"
+          layout="total, prev, pager, next, sizes, jumper"
           :total="total"
         />
       </div>
@@ -267,5 +268,35 @@ const handleRelease = (row: any) => {
 }
 .data-pool-table {
   --el-table-border-color: #f1f5f9;
+}
+
+/* 分页器精简风格 (保持与其他页面一致) */
+.custom-pagination :deep(.el-pager li) {
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  color: #595959;
+  font-weight: normal;
+  min-width: 28px;
+  height: 28px;
+  line-height: 28px;
+}
+.custom-pagination :deep(.el-pager li.is-active) {
+  background: #fff;
+  border-color: #004b9e;
+  color: #004b9e;
+}
+.custom-pagination :deep(.el-pagination__sizes .el-input__wrapper) {
+  height: 28px;
+  box-shadow: none;
+  border: 1px solid #d9d9d9;
+}
+.custom-pagination :deep(.btn-prev),
+.custom-pagination :deep(.btn-next) {
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  height: 28px;
+  min-width: 28px;
 }
 </style>

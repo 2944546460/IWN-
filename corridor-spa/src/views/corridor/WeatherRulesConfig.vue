@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Setup, Warning, WarnTriangleFilled, Edit, List } from '@element-plus/icons-vue'
+import { SetUp, Warning, WarnTriangleFilled, Edit, List } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 // ---- 数据定义 ----
