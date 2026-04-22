@@ -80,7 +80,7 @@
       </el-form>
 
       <el-table
-        :data="pagedList"
+        :data="list"
         v-loading="loading"
         class="custom-el-table flex-1 mt-2"
         :header-cell-style="tableHeaderStyle"
@@ -93,33 +93,35 @@
         <el-table-column prop="corridorName" label="计划廊道" min-width="180" show-overflow-tooltip />
         <el-table-column prop="uavClass" label="机型类别" min-width="100" align="center">
           <template #default="{ row }">
-            <span class="uav-tag" :class="uavClassStyle(row.uavClass)">{{ row.uavClass }}</span>
+            <span class="uav-tag" :class="uavClassClass(row.uavClass)">{{ row.uavClass }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="planTime" label="计划起飞时间" min-width="150" />
-        <el-table-column prop="precheckStatus" label="预检状态" min-width="110" align="center">
+        <el-table-column label="预检状态" min-width="110" align="center">
           <template #default="{ row }">
-            <span class="status-tag" :class="precheckClass(row.precheckStatus)">{{ precheckLabel(row.precheckStatus) }}</span>
+            <span class="status-tag" :class="precheckClass(row.weatherPrecheck.status)">
+              {{ precheckLabel(row.weatherPrecheck.status) }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column prop="verifyResult" label="审批状态" min-width="100" align="center">
+        <el-table-column label="审批状态" min-width="100" align="center">
           <template #default="{ row }">
-            <span :class="approveClass(row.verifyResult)">{{ row.verifyResult }}</span>
+            <span :class="approvalTextClass(row.approval.status)">{{ approvalLabel(row.approval.status) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="90" align="center" fixed="right">
           <template #default="{ row }">
-            <span class="action-link" @click="goToDetail(row)">详情</span>
+            <span class="action-link" @click="goToDetail(row.taskId)">详情</span>
           </template>
         </el-table-column>
       </el-table>
 
       <div class="flex justify-end items-center mt-4 text-[13px] text-[#8c8c8c]">
-        <span class="mr-4">共 {{ filteredList.length }} 条</span>
+        <span class="mr-4">共 {{ total }} 条</span>
         <el-pagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.pageSize"
-          :total="filteredList.length"
+          :total="total"
           :page-sizes="[10, 20, 50]"
           layout="prev, pager, next, sizes, jumper"
           background
@@ -133,30 +135,28 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-
-type PrecheckStatus = 'pending' | 'pass' | 'risk' | 'blocked' | 'all-day-blocked'
-
-interface TaskItem {
-  taskId: string
-  taskName: string
-  bizType: string
-  corridorName: string
-  uavClass: string
-  planTime: string
-  precheckStatus: PrecheckStatus
-  verifyResult: string
-}
+import {
+  getPlanningTaskList,
+  getPlanningTaskStats,
+  type ApprovalStatus,
+  type PlanningTaskStats,
+  type PlanningTaskSummary,
+  type PrecheckStatus,
+} from '@/api/modules'
 
 const router = useRouter()
 const loading = ref(false)
+const list = ref<PlanningTaskSummary[]>([])
+const total = ref(0)
+const stats = ref<PlanningTaskStats>({ today: 0, pending: 0, blocked: 0 })
 
 const filter = reactive({
   taskId: '',
   taskName: '',
   bizType: '',
-  precheckStatus: '',
+  precheckStatus: '' as PrecheckStatus | '',
 })
 
 const pagination = reactive({
@@ -164,93 +164,16 @@ const pagination = reactive({
   pageSize: 10,
 })
 
-const sourceList = ref<TaskItem[]>([
-  {
-    taskId: 'MIS000000718',
-    taskName: '长清高速例行巡检',
-    bizType: '高速巡检',
-    corridorName: 'G56 杭瑞高速西延段',
-    uavClass: '多旋翼',
-    planTime: '2026-04-22 14:00',
-    precheckStatus: 'pending',
-    verifyResult: '待审批',
-  },
-  {
-    taskId: 'MIS000000717',
-    taskName: '临安医疗紧急配送',
-    bizType: '应急物流',
-    corridorName: '临安医疗专用廊道',
-    uavClass: 'VTOL',
-    planTime: '2026-04-22 15:30',
-    precheckStatus: 'pass',
-    verifyResult: '待审批',
-  },
-  {
-    taskId: 'MIS000000716',
-    taskName: '滨江电力通道巡线',
-    bizType: '电力巡检',
-    corridorName: '滨江东段巡检廊道',
-    uavClass: '固定翼',
-    planTime: '2026-04-22 16:00',
-    precheckStatus: 'blocked',
-    verifyResult: '已阻断',
-  },
-  {
-    taskId: 'MIS000000715',
-    taskName: '西湖景区低空拍摄',
-    bizType: '文旅航拍',
-    corridorName: '西湖景区环湖廊道',
-    uavClass: '多旋翼',
-    planTime: '2026-04-22 17:00',
-    precheckStatus: 'risk',
-    verifyResult: '待调整',
-  },
-  {
-    taskId: 'MIS000000714',
-    taskName: '余杭物流常态配送',
-    bizType: '智慧物流',
-    corridorName: '余杭北向物流廊道',
-    uavClass: 'VTOL',
-    planTime: '2026-04-22 18:20',
-    precheckStatus: 'all-day-blocked',
-    verifyResult: '全天禁飞',
-  },
-])
-
-const list = ref<TaskItem[]>([])
-
 const precheckOptions = [
   { label: '待预检', value: 'pending' },
   { label: '预检通过', value: 'pass' },
   { label: '存在风险', value: 'risk' },
   { label: '气象阻断', value: 'blocked' },
-  { label: '全天候禁飞', value: 'all-day-blocked' },
+  { label: '全天候禁飞', value: 'all_day_blocked' },
 ]
 
-const bizTypeOptions = computed(() => [...new Set(sourceList.value.map(item => item.bizType))])
-
-const filteredList = computed(() =>
-  sourceList.value.filter(item => {
-    if (filter.taskId && !item.taskId.includes(filter.taskId)) return false
-    if (filter.taskName && !item.taskName.includes(filter.taskName)) return false
-    if (filter.bizType && item.bizType !== filter.bizType) return false
-    if (filter.precheckStatus && item.precheckStatus !== filter.precheckStatus) return false
-    return true
-  }),
-)
-
-const pagedList = computed(() => {
-  const start = (pagination.page - 1) * pagination.pageSize
-  return list.value.slice(start, start + pagination.pageSize)
-})
-
+const bizTypeOptions = computed(() => ['高速巡检', '应急物流', '电力巡检', '文旅航拍', '智慧物流'])
 const indexOffset = computed(() => (pagination.page - 1) * pagination.pageSize + 1)
-
-const stats = computed(() => ({
-  today: sourceList.value.length,
-  pending: sourceList.value.filter(item => item.verifyResult === '待审批').length,
-  blocked: sourceList.value.filter(item => ['blocked', 'all-day-blocked'].includes(item.precheckStatus)).length,
-}))
 
 const tableHeaderStyle = {
   background: '#fafafa',
@@ -266,12 +189,29 @@ const tableCellStyle = {
   borderBottom: '1px solid #f5f5f5',
 }
 
-function loadList() {
+function buildFilter() {
+  return {
+    taskId: filter.taskId,
+    taskName: filter.taskName,
+    bizType: filter.bizType,
+    precheckStatus: filter.precheckStatus,
+  }
+}
+
+async function loadStats() {
+  stats.value = await getPlanningTaskStats(buildFilter())
+}
+
+async function loadList() {
   loading.value = true
-  window.setTimeout(() => {
-    list.value = filteredList.value
-    loading.value = false
-  }, 200)
+  const [pageResult, statResult] = await Promise.all([
+    getPlanningTaskList(buildFilter(), { page: pagination.page, pageSize: pagination.pageSize }),
+    getPlanningTaskStats(buildFilter()),
+  ])
+  list.value = pageResult.list
+  total.value = pageResult.total
+  stats.value = statResult
+  loading.value = false
 }
 
 function resetPage() {
@@ -289,26 +229,15 @@ function resetFilters() {
   resetPage()
 }
 
-function goToDetail(row: TaskItem) {
-  router.push(`/planning/user-task/detail/${row.taskId}`)
+function goToDetail(taskId: string) {
+  router.push(`/planning/user-task/detail/${taskId}`)
 }
 
-function uavClassStyle(cls: string) {
-  if (cls === '多旋翼') return 'uav-multirotor'
-  if (cls === '固定翼') return 'uav-fixedwing'
-  if (cls === 'VTOL') return 'uav-vtol'
+function uavClassClass(value: string) {
+  if (value === '多旋翼') return 'uav-multirotor'
+  if (value === '固定翼') return 'uav-fixedwing'
+  if (value === 'VTOL') return 'uav-vtol'
   return 'uav-default'
-}
-
-function precheckClass(status: PrecheckStatus) {
-  const map: Record<PrecheckStatus, string> = {
-    pending: 'status-pending',
-    pass: 'status-pass',
-    risk: 'status-risk',
-    blocked: 'status-blocked',
-    'all-day-blocked': 'status-all-day',
-  }
-  return map[status]
 }
 
 function precheckLabel(status: PrecheckStatus) {
@@ -317,18 +246,43 @@ function precheckLabel(status: PrecheckStatus) {
     pass: '预检通过',
     risk: '存在风险',
     blocked: '气象阻断',
-    'all-day-blocked': '全天候禁飞',
+    all_day_blocked: '全天候禁飞',
   }
   return map[status]
 }
 
-function approveClass(status: string) {
-  if (status === '已阻断' || status === '全天禁飞') return 'text-[#ff4d4f] font-medium'
-  if (status === '待审批' || status === '待调整') return 'text-[#004b9e] font-medium'
-  return 'text-[#333]'
+function precheckClass(status: PrecheckStatus) {
+  const map: Record<PrecheckStatus, string> = {
+    pending: 'status-pending',
+    pass: 'status-pass',
+    risk: 'status-risk',
+    blocked: 'status-blocked',
+    all_day_blocked: 'status-all-day',
+  }
+  return map[status]
 }
 
-loadList()
+function approvalLabel(status: ApprovalStatus) {
+  const map: Record<ApprovalStatus, string> = {
+    pending: '待审批',
+    approved: '已通过',
+    rejected: '已驳回',
+    adjusting: '待调整',
+    blocked: '已阻断',
+  }
+  return map[status]
+}
+
+function approvalTextClass(status: ApprovalStatus) {
+  if (status === 'approved') return 'text-[#52c41a] font-medium'
+  if (status === 'rejected' || status === 'blocked') return 'text-[#ff4d4f] font-medium'
+  return 'text-[#004b9e] font-medium'
+}
+
+onMounted(() => {
+  loadStats()
+  loadList()
+})
 </script>
 
 <style scoped>

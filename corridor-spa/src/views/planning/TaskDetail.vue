@@ -1,261 +1,202 @@
 <template>
-  <div class="task-detail-page">
-    <div class="custom-card mb-4">
-      <div class="card-title">任务基础信息</div>
-      <div class="card-body">
-        <el-descriptions :column="3" class="custom-descriptions">
-          <el-descriptions-item label="任务 ID">{{ task.taskId }}</el-descriptions-item>
-          <el-descriptions-item label="任务编码">{{ task.taskCode }}</el-descriptions-item>
-          <el-descriptions-item label="任务模式">{{ task.mode }}</el-descriptions-item>
-          <el-descriptions-item label="业务类型">{{ task.bizType }}</el-descriptions-item>
-          <el-descriptions-item label="申请用户 ID">{{ task.userId }}</el-descriptions-item>
-          <el-descriptions-item label="申请用户名称">{{ task.userName }}</el-descriptions-item>
-          <el-descriptions-item label="飞行器型号">{{ task.uavName }}</el-descriptions-item>
-          <el-descriptions-item label="机型类别">
-            <span class="uav-tag" :class="uavClassClass(task.uavClass)">{{ task.uavClass }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="提交时间">{{ task.submitTime }}</el-descriptions-item>
-          <el-descriptions-item label="审批状态">
-            <span :class="approvalTextClass(task.approval.status)">{{ approvalStatusLabel(task.approval.status) }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="计划廊道">{{ task.routeInfo.corridor }}</el-descriptions-item>
-          <el-descriptions-item label="计划起飞时间">{{ task.routeInfo.startTime }}</el-descriptions-item>
-          <el-descriptions-item label="任务描述" :span="3">{{ task.description || '-' }}</el-descriptions-item>
-        </el-descriptions>
-      </div>
-    </div>
-
-    <div class="custom-card mb-4">
-      <div class="card-title">气象预检结论</div>
-      <div class="card-body">
-        <div class="precheck-summary" :class="summaryClass(task.weatherPrecheck.status)">
-          <div class="summary-left">
-            <span class="status-tag" :class="summaryClass(task.weatherPrecheck.status)">
-              {{ precheckStatusLabel(task.weatherPrecheck.status) }}
-            </span>
-            <div class="summary-text">
-              <div class="summary-title">{{ task.weatherPrecheck.summary }}</div>
-              <div class="summary-desc">{{ task.weatherPrecheck.advice }}</div>
-            </div>
-          </div>
-          <div class="summary-meta">
-            <div class="meta-item">
-              <span class="meta-label">判定时间</span>
-              <span class="meta-value">{{ task.weatherPrecheck.checkedAt }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">气象数据时间</span>
-              <span class="meta-value">{{ task.weatherPrecheck.weatherDataAt }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">规则版本</span>
-              <span class="meta-value">{{ task.weatherPrecheck.ruleVersion }}</span>
-            </div>
-          </div>
-        </div>
-
-        <el-descriptions :column="3" class="custom-descriptions mt-4">
-          <el-descriptions-item label="适用机型">{{ task.weatherPrecheck.uavClass }}</el-descriptions-item>
-          <el-descriptions-item label="命中禁飞区">{{ task.weatherPrecheck.hitNoFlyZone ? '是' : '否' }}</el-descriptions-item>
-          <el-descriptions-item label="允许审批通过">{{ task.weatherPrecheck.canApprove ? '是' : '否' }}</el-descriptions-item>
-          <el-descriptions-item label="冲突网格">{{ task.weatherPrecheck.conflictGrid || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="冲突时段">{{ task.weatherPrecheck.conflictTimeRange || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="冲突等级">{{ task.weatherPrecheck.conflictLevel || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="触发规则">{{ task.weatherPrecheck.triggerRule || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="气象因子">{{ task.weatherPrecheck.weatherFactor || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="阈值对比">
-            {{ task.weatherPrecheck.actualValue && task.weatherPrecheck.thresholdValue
-              ? `${task.weatherPrecheck.actualValue} / ${task.weatherPrecheck.thresholdValue}`
-              : '-' }}
-          </el-descriptions-item>
-        </el-descriptions>
-      </div>
-    </div>
-
-    <div class="detail-grid mb-4">
-      <div class="custom-card">
-        <div class="card-title">航线信息</div>
+  <div class="task-detail-page" v-loading="loading">
+    <template v-if="task">
+      <div class="custom-card mb-4">
+        <div class="card-title">任务基础信息</div>
         <div class="card-body">
-          <el-descriptions :column="2" class="custom-descriptions">
-            <el-descriptions-item label="航线模式">{{ task.routeInfo.mode }}</el-descriptions-item>
+          <el-descriptions :column="3" class="custom-descriptions">
+            <el-descriptions-item label="任务 ID">{{ task.taskId }}</el-descriptions-item>
+            <el-descriptions-item label="任务编码">{{ task.taskCode }}</el-descriptions-item>
+            <el-descriptions-item label="任务模式">{{ task.mode }}</el-descriptions-item>
+            <el-descriptions-item label="任务名称">{{ task.taskName }}</el-descriptions-item>
+            <el-descriptions-item label="业务类型">{{ task.bizType }}</el-descriptions-item>
+            <el-descriptions-item label="申请用户">{{ task.userName }}（{{ task.userId }}）</el-descriptions-item>
+            <el-descriptions-item label="飞行器型号">{{ task.uavName }}</el-descriptions-item>
+            <el-descriptions-item label="机型类别">
+              <span class="uav-tag" :class="uavClassClass(task.uavClass)">{{ task.uavClass }}</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="提交时间">{{ task.submitTime }}</el-descriptions-item>
+            <el-descriptions-item label="审批状态">
+              <span :class="approvalTextClass(task.approval.status)">{{ approvalLabel(task.approval.status) }}</span>
+            </el-descriptions-item>
             <el-descriptions-item label="计划廊道">{{ task.routeInfo.corridor }}</el-descriptions-item>
-            <el-descriptions-item label="起飞点">{{ task.routeInfo.start }}</el-descriptions-item>
-            <el-descriptions-item label="降落点">{{ task.routeInfo.end }}</el-descriptions-item>
-            <el-descriptions-item label="飞行距离">{{ task.routeInfo.distance }}</el-descriptions-item>
-            <el-descriptions-item label="飞行高度">{{ task.routeInfo.altitude }}</el-descriptions-item>
-            <el-descriptions-item label="飞行速度">{{ task.routeInfo.speed }}</el-descriptions-item>
-            <el-descriptions-item label="飞行时长">{{ task.routeInfo.duration }}</el-descriptions-item>
-            <el-descriptions-item label="任务载荷">{{ task.routeInfo.payload }}</el-descriptions-item>
-            <el-descriptions-item label="受影响航段">{{ task.weatherPrecheck.affectedSegment || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="计划起飞时间">{{ task.routeInfo.startTime }}</el-descriptions-item>
+            <el-descriptions-item label="任务描述" :span="3">{{ task.description || '-' }}</el-descriptions-item>
           </el-descriptions>
         </div>
       </div>
 
-      <div class="custom-card">
-        <div class="card-title">航线与冲突分析</div>
-        <div class="card-body p-0">
-          <div id="detail-map" class="route-map"></div>
-          <div class="map-legend">
-            <span class="legend-item"><i class="legend-dot legend-route"></i>计划航线</span>
-            <span class="legend-item"><i class="legend-dot legend-conflict"></i>冲突区域</span>
-            <span class="legend-item"><i class="legend-dot legend-point-start"></i>起点</span>
-            <span class="legend-item"><i class="legend-dot legend-point-end"></i>终点</span>
+      <div class="custom-card mb-4">
+        <div class="card-title">气象预检结论</div>
+        <div class="card-body">
+          <div class="precheck-summary" :class="summaryClass(task.weatherPrecheck.status)">
+            <div class="summary-left">
+              <span class="status-tag" :class="summaryClass(task.weatherPrecheck.status)">
+                {{ precheckLabel(task.weatherPrecheck.status) }}
+              </span>
+              <div class="summary-text">
+                <div class="summary-title">{{ task.weatherPrecheck.summary }}</div>
+                <div class="summary-desc">{{ task.weatherPrecheck.advice }}</div>
+              </div>
+            </div>
+            <div class="summary-meta">
+              <div class="meta-item">
+                <span class="meta-label">判定时间</span>
+                <span class="meta-value">{{ task.weatherPrecheck.checkedAt }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">气象数据时间</span>
+                <span class="meta-value">{{ task.weatherPrecheck.weatherDataAt }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">规则版本</span>
+                <span class="meta-value">{{ task.weatherPrecheck.ruleVersion }}</span>
+              </div>
+            </div>
+          </div>
+
+          <el-descriptions :column="3" class="custom-descriptions mt-4">
+            <el-descriptions-item label="适用机型">{{ task.weatherPrecheck.uavClass }}</el-descriptions-item>
+            <el-descriptions-item label="命中禁飞区">{{ task.weatherPrecheck.hitNoFlyZone ? '是' : '否' }}</el-descriptions-item>
+            <el-descriptions-item label="允许审批通过">{{ task.weatherPrecheck.canApprove ? '是' : '否' }}</el-descriptions-item>
+            <el-descriptions-item label="冲突网格">{{ task.weatherPrecheck.conflictGrid || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="冲突时段">{{ task.weatherPrecheck.conflictTimeRange || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="冲突等级">{{ task.weatherPrecheck.conflictLevel || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="触发规则">{{ task.weatherPrecheck.triggerRule || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="气象因子">{{ task.weatherPrecheck.weatherFactor || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="阈值对比">
+              {{ task.weatherPrecheck.actualValue && task.weatherPrecheck.thresholdValue
+                ? `${task.weatherPrecheck.actualValue} / ${task.weatherPrecheck.thresholdValue}`
+                : '-' }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+      </div>
+
+      <div class="detail-grid mb-4">
+        <div class="custom-card">
+          <div class="card-title">航线信息</div>
+          <div class="card-body">
+            <el-descriptions :column="2" class="custom-descriptions">
+              <el-descriptions-item label="航线模式">{{ task.routeInfo.mode }}</el-descriptions-item>
+              <el-descriptions-item label="计划廊道">{{ task.routeInfo.corridor }}</el-descriptions-item>
+              <el-descriptions-item label="起飞点">{{ task.routeInfo.start }}</el-descriptions-item>
+              <el-descriptions-item label="降落点">{{ task.routeInfo.end }}</el-descriptions-item>
+              <el-descriptions-item label="飞行距离">{{ task.routeInfo.distance }}</el-descriptions-item>
+              <el-descriptions-item label="飞行高度">{{ task.routeInfo.altitude }}</el-descriptions-item>
+              <el-descriptions-item label="飞行速度">{{ task.routeInfo.speed }}</el-descriptions-item>
+              <el-descriptions-item label="飞行时长">{{ task.routeInfo.duration }}</el-descriptions-item>
+              <el-descriptions-item label="任务载荷">{{ task.routeInfo.payload }}</el-descriptions-item>
+              <el-descriptions-item label="受影响航段">{{ task.weatherPrecheck.affectedSegment || '-' }}</el-descriptions-item>
+            </el-descriptions>
+          </div>
+        </div>
+
+        <div class="custom-card">
+          <div class="card-title">航线与冲突分析</div>
+          <div class="card-body p-0">
+            <div id="detail-map" class="route-map"></div>
+            <div class="map-legend">
+              <span class="legend-item"><i class="legend-dot legend-route"></i>计划航线</span>
+              <span class="legend-item"><i class="legend-dot legend-conflict"></i>冲突区域</span>
+              <span class="legend-item"><i class="legend-dot legend-point-start"></i>起点</span>
+              <span class="legend-item"><i class="legend-dot legend-point-end"></i>终点</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="custom-card mb-4">
-      <div class="card-title">适飞窗口建议</div>
-      <div class="card-body">
-        <template v-if="task.safeWindows.length">
-          <el-table
-            :data="task.safeWindows"
-            class="custom-el-table"
-            :header-cell-style="tableHeaderStyle"
-            :cell-style="tableCellStyle"
-          >
-            <el-table-column type="index" label="序号" width="60" align="center" />
-            <el-table-column prop="startTime" label="建议开始时间" min-width="160" />
-            <el-table-column prop="endTime" label="建议结束时间" min-width="160" />
-            <el-table-column prop="duration" label="持续时长" min-width="100" />
-            <el-table-column prop="level" label="推荐等级" min-width="100" />
-            <el-table-column prop="reason" label="推荐原因" min-width="260" show-overflow-tooltip />
-            <el-table-column label="适飞性" min-width="90" align="center">
-              <template #default="{ row }">
-                <span :class="row.available ? 'text-success' : 'text-fail'">{{ row.available ? '可飞' : '不可飞' }}</span>
-              </template>
-            </el-table-column>
-          </el-table>
-        </template>
-        <el-empty v-else description="未来 24 小时无可用适飞窗口，建议驳回或重新申报任务。" />
-      </div>
-    </div>
-
-    <div class="custom-card">
-      <div class="card-title">任务审批</div>
-      <div class="card-body">
-        <div class="approval-notice" :class="summaryClass(task.weatherPrecheck.status)">
-          <div class="notice-title">审批建议</div>
-          <div class="notice-text">{{ approvalHint }}</div>
-        </div>
-
-        <el-form label-position="top" class="approval-form mt-4">
-          <el-form-item label="审批意见">
-            <el-input
-              v-model="approvalComment"
-              type="textarea"
-              :rows="4"
-              resize="none"
-              placeholder="请输入审批意见或处理说明"
-              class="custom-el-input"
-            />
-          </el-form-item>
-        </el-form>
-
-        <div class="footer-bar">
-          <el-button @click="goBack" class="custom-btn">返回</el-button>
-          <el-button @click="handleReject" class="custom-btn">驳回</el-button>
-          <el-button
-            v-if="showRescheduleButton"
-            @click="handleRecommendReschedule"
-            class="custom-btn"
-          >
-            建议改期
-          </el-button>
-          <el-button
-            type="primary"
-            :disabled="!task.weatherPrecheck.canApprove"
-            @click="handleApprove"
-            class="custom-btn custom-btn-primary"
-          >
-            审批通过
-          </el-button>
+      <div class="custom-card mb-4">
+        <div class="card-title">适飞窗口建议</div>
+        <div class="card-body">
+          <template v-if="task.safeWindows.length">
+            <el-table
+              :data="task.safeWindows"
+              class="custom-el-table"
+              :header-cell-style="tableHeaderStyle"
+              :cell-style="tableCellStyle"
+            >
+              <el-table-column type="index" label="序号" width="60" align="center" />
+              <el-table-column prop="startTime" label="建议开始时间" min-width="160" />
+              <el-table-column prop="endTime" label="建议结束时间" min-width="160" />
+              <el-table-column prop="duration" label="持续时长" min-width="100" />
+              <el-table-column prop="level" label="推荐等级" min-width="100" />
+              <el-table-column prop="reason" label="推荐原因" min-width="260" show-overflow-tooltip />
+              <el-table-column label="适飞性" min-width="90" align="center">
+                <template #default="{ row }">
+                  <span :class="row.available ? 'text-success' : 'text-fail'">{{ row.available ? '可飞' : '不可飞' }}</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </template>
+          <el-empty v-else description="未来 24 小时无可用适飞窗口，建议驳回或重新申报任务。" />
         </div>
       </div>
-    </div>
+
+      <div class="custom-card">
+        <div class="card-title">任务审批</div>
+        <div class="card-body">
+          <div class="approval-notice" :class="summaryClass(task.weatherPrecheck.status)">
+            <div class="notice-title">审批建议</div>
+            <div class="notice-text">{{ approvalHint }}</div>
+          </div>
+
+          <el-form label-position="top" class="approval-form mt-4">
+            <el-form-item label="审批意见">
+              <el-input
+                v-model="approvalComment"
+                type="textarea"
+                :rows="4"
+                resize="none"
+                placeholder="请输入审批意见或处理说明"
+                class="custom-el-input"
+              />
+            </el-form-item>
+          </el-form>
+
+          <div class="footer-bar">
+            <el-button @click="goBack" class="custom-btn">返回</el-button>
+            <el-button @click="handleReject" class="custom-btn">驳回</el-button>
+            <el-button v-if="showRescheduleButton" @click="handleRecommendReschedule" class="custom-btn">
+              建议改期
+            </el-button>
+            <el-button
+              type="primary"
+              :disabled="!task.weatherPrecheck.canApprove"
+              @click="handleApprove"
+              class="custom-btn custom-btn-primary"
+            >
+              审批通过
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <el-empty v-else description="未找到该任务详情" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import 'leaflet/dist/leaflet.css'
 import * as L from 'leaflet'
-
-type PrecheckStatus = 'pending' | 'pass' | 'risk' | 'blocked' | 'all_day_blocked'
-type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'adjusting' | 'blocked'
-
-interface RouteInfo {
-  mode: string
-  corridor: string
-  start: string
-  end: string
-  distance: string
-  altitude: string
-  payload: string
-  speed: string
-  startTime: string
-  duration: string
-}
-
-interface WeatherPrecheckInfo {
-  status: PrecheckStatus
-  summary: string
-  advice: string
-  checkedAt: string
-  weatherDataAt: string
-  ruleVersion: string
-  uavClass: string
-  hitNoFlyZone: boolean
-  canApprove: boolean
-  affectedSegment?: string
-  conflictGrid?: string
-  conflictTimeRange?: string
-  conflictLevel?: string
-  triggerRule?: string
-  weatherFactor?: string
-  actualValue?: string
-  thresholdValue?: string
-}
-
-interface SafeTimeWindow {
-  startTime: string
-  endTime: string
-  duration: string
-  level: string
-  reason: string
-  available: boolean
-}
-
-interface ApprovalInfo {
-  status: ApprovalStatus
-  updatedAt: string
-}
-
-interface TaskDetailRecord {
-  taskId: string
-  taskCode: string
-  mode: string
-  bizType: string
-  userId: string
-  userName: string
-  uavName: string
-  uavClass: string
-  submitTime: string
-  description: string
-  routeInfo: RouteInfo
-  routeCoords: [number, number][]
-  weatherPrecheck: WeatherPrecheckInfo
-  safeWindows: SafeTimeWindow[]
-  approval: ApprovalInfo
-}
+import {
+  getPlanningTaskDetail,
+  updatePlanningTaskApproval,
+  type ApprovalStatus,
+  type PlanningTaskDetail,
+  type PrecheckStatus,
+} from '@/api/modules'
 
 const route = useRoute()
 const router = useRouter()
-const taskId = route.params.id as string
+const task = ref<PlanningTaskDetail | null>(null)
+const loading = ref(false)
 const approvalComment = ref('')
+let mapInstance: L.Map | null = null
 
 const tableHeaderStyle = {
   background: '#fafafa',
@@ -271,197 +212,8 @@ const tableCellStyle = {
   borderBottom: '1px solid #f5f5f5',
 }
 
-const taskMap: Record<string, TaskDetailRecord> = {
-  MIS000000718: {
-    taskId: 'MIS000000718',
-    taskCode: '04221718',
-    mode: '定时任务',
-    bizType: '高速巡检',
-    userId: 'USR000001',
-    userName: 'Super',
-    uavName: 'M300 RTK',
-    uavClass: '多旋翼',
-    submitTime: '2026-04-22 10:18:32',
-    description: '对 G56 杭瑞高速西延段开展例行巡检任务。',
-    routeInfo: {
-      mode: '单程航线',
-      corridor: 'G56 杭瑞高速西延段',
-      start: '长清高速起降点 A',
-      end: '长清高速起降点 C',
-      distance: '18.6 km',
-      altitude: '120 m AGL',
-      payload: '高清巡检吊舱',
-      speed: '10 m/s',
-      startTime: '2026-04-22 14:00:00',
-      duration: '31 min',
-    },
-    routeCoords: [
-      [30.26, 119.98],
-      [30.255, 119.965],
-      [30.249, 119.946],
-      [30.246, 119.925],
-      [30.242, 119.902],
-      [30.238, 119.878],
-    ],
-    weatherPrecheck: {
-      status: 'blocked',
-      summary: '当前任务命中三级气象禁飞区，系统禁止直接审批通过。',
-      advice: '建议改期至推荐窗口重新提交；如业务紧急，请调整任务时段后再次发起审批。',
-      checkedAt: '2026-04-22 10:20:15',
-      weatherDataAt: '2026-04-22 10:19:00',
-      ruleVersion: 'WR-2026.04.22-01',
-      uavClass: '多旋翼',
-      hitNoFlyZone: true,
-      canApprove: false,
-      affectedSegment: 'K12+300 至 K18+100',
-      conflictGrid: 'GRID-HZ-03-128',
-      conflictTimeRange: '2026-04-22 14:00 - 15:00',
-      conflictLevel: '三级禁飞',
-      triggerRule: '多旋翼风速 > 12m/s 禁飞',
-      weatherFactor: '阵风风速',
-      actualValue: '14.8 m/s',
-      thresholdValue: '12.0 m/s',
-    },
-    safeWindows: [
-      {
-        startTime: '2026-04-22 16:30',
-        endTime: '2026-04-22 17:20',
-        duration: '50 min',
-        level: '推荐',
-        reason: '风速回落至阈值以下，沿线无禁飞重叠。',
-        available: true,
-      },
-      {
-        startTime: '2026-04-22 18:00',
-        endTime: '2026-04-22 19:00',
-        duration: '60 min',
-        level: '可选',
-        reason: '降水减弱，能见度恢复，适合执行巡检任务。',
-        available: true,
-      },
-    ],
-    approval: {
-      status: 'blocked',
-      updatedAt: '2026-04-22 10:20:15',
-    },
-  },
-  MIS000000717: {
-    taskId: 'MIS000000717',
-    taskCode: '04221717',
-    mode: '实时任务',
-    bizType: '应急物流',
-    userId: 'USR000001',
-    userName: 'Super',
-    uavName: 'V150 eVTOL',
-    uavClass: 'VTOL',
-    submitTime: '2026-04-22 09:52:10',
-    description: '向临安医疗专用廊道投送应急药品与耗材。',
-    routeInfo: {
-      mode: '单程航线',
-      corridor: '临安医疗专用廊道',
-      start: '临安中心医院起降点',
-      end: '临安西院区起降点',
-      distance: '12.4 km',
-      altitude: '150 m AGL',
-      payload: '医疗物资箱',
-      speed: '14 m/s',
-      startTime: '2026-04-22 15:30:00',
-      duration: '18 min',
-    },
-    routeCoords: [
-      [30.24, 120.05],
-      [30.235, 120.03],
-      [30.229, 120.01],
-      [30.222, 119.995],
-      [30.216, 119.978],
-    ],
-    weatherPrecheck: {
-      status: 'pass',
-      summary: '未来飞行时段内未命中气象禁飞区，可进入审批流程。',
-      advice: '气象条件满足当前机型飞行要求，可按计划执行任务。',
-      checkedAt: '2026-04-22 09:53:40',
-      weatherDataAt: '2026-04-22 09:53:00',
-      ruleVersion: 'WR-2026.04.22-01',
-      uavClass: 'VTOL',
-      hitNoFlyZone: false,
-      canApprove: true,
-    },
-    safeWindows: [
-      {
-        startTime: '2026-04-22 15:30',
-        endTime: '2026-04-22 16:00',
-        duration: '30 min',
-        level: '当前可飞',
-        reason: '沿线风速、降水均处于安全范围内。',
-        available: true,
-      },
-    ],
-    approval: {
-      status: 'pending',
-      updatedAt: '2026-04-22 09:53:40',
-    },
-  },
-  MIS000000714: {
-    taskId: 'MIS000000714',
-    taskCode: '04221714',
-    mode: '定时任务',
-    bizType: '智慧物流',
-    userId: 'USR000001',
-    userName: 'Super',
-    uavName: 'L400 Logistics',
-    uavClass: 'VTOL',
-    submitTime: '2026-04-22 08:10:02',
-    description: '余杭北向物流廊道常态化配送任务。',
-    routeInfo: {
-      mode: '往返航线',
-      corridor: '余杭北向物流廊道',
-      start: '余杭物流园起降点',
-      end: '北向分拨中心起降点',
-      distance: '22.8 km',
-      altitude: '160 m AGL',
-      payload: '标准货箱',
-      speed: '16 m/s',
-      startTime: '2026-04-22 18:20:00',
-      duration: '42 min',
-    },
-    routeCoords: [
-      [30.35, 120.01],
-      [30.344, 119.992],
-      [30.338, 119.98],
-      [30.332, 119.968],
-      [30.325, 119.956],
-    ],
-    weatherPrecheck: {
-      status: 'all_day_blocked',
-      summary: '未来 24 小时内沿线持续处于气象禁飞状态，当前任务建议直接驳回。',
-      advice: '请重新申报新的飞行日期，或等待后续气象数据刷新后再次评估。',
-      checkedAt: '2026-04-22 08:12:00',
-      weatherDataAt: '2026-04-22 08:11:00',
-      ruleVersion: 'WR-2026.04.22-01',
-      uavClass: 'VTOL',
-      hitNoFlyZone: true,
-      canApprove: false,
-      affectedSegment: '全线段',
-      conflictGrid: 'GRID-HZ-08-041',
-      conflictTimeRange: '未来 24 小时',
-      conflictLevel: '一级绝对禁飞',
-      triggerRule: '强降水 + 阵风联动禁飞',
-      weatherFactor: '降水 / 风速',
-      actualValue: '18 mm/h / 19.2 m/s',
-      thresholdValue: '10 mm/h / 15.0 m/s',
-    },
-    safeWindows: [],
-    approval: {
-      status: 'blocked',
-      updatedAt: '2026-04-22 08:12:00',
-    },
-  },
-}
-
-const task = ref<TaskDetailRecord>(taskMap[taskId] || taskMap.MIS000000718)
-let mapInstance: L.Map | null = null
-
 const approvalHint = computed(() => {
+  if (!task.value) return ''
   if (task.value.weatherPrecheck.canApprove) {
     return '当前任务气象预检通过，审批通过按钮可直接使用。'
   }
@@ -471,11 +223,12 @@ const approvalHint = computed(() => {
   return '当前任务命中气象禁飞区，审批通过按钮已禁用，请优先执行驳回或建议改期。'
 })
 
-const showRescheduleButton = computed(() =>
-  ['risk', 'blocked'].includes(task.value.weatherPrecheck.status),
-)
+const showRescheduleButton = computed(() => {
+  if (!task.value) return false
+  return ['risk', 'blocked'].includes(task.value.weatherPrecheck.status)
+})
 
-function approvalStatusLabel(status: ApprovalStatus) {
+function approvalLabel(status: ApprovalStatus) {
   const map: Record<ApprovalStatus, string> = {
     pending: '待审批',
     approved: '已通过',
@@ -492,7 +245,7 @@ function approvalTextClass(status: ApprovalStatus) {
   return 'text-pending'
 }
 
-function precheckStatusLabel(status: PrecheckStatus) {
+function precheckLabel(status: PrecheckStatus) {
   const map: Record<PrecheckStatus, string> = {
     pending: '待预检',
     pass: '预检通过',
@@ -521,33 +274,25 @@ function uavClassClass(value: string) {
   return 'uav-default'
 }
 
-function goBack() {
-  router.push('/planning/user-task')
+async function loadTask() {
+  loading.value = true
+  task.value = await getPlanningTaskDetail(route.params.id as string)
+  loading.value = false
+  await nextTick()
+  renderMap()
 }
 
-function handleApprove() {
-  if (!task.value.weatherPrecheck.canApprove) {
-    ElMessage.warning('当前任务命中气象禁飞条件，系统禁止审批通过。')
-    return
+function disposeMap() {
+  if (mapInstance) {
+    mapInstance.remove()
+    mapInstance = null
   }
-  task.value.approval.status = 'approved'
-  task.value.approval.updatedAt = '2026-04-22 10:30:00'
-  ElMessage.success('任务已审批通过。')
 }
 
-function handleReject() {
-  task.value.approval.status = 'rejected'
-  task.value.approval.updatedAt = '2026-04-22 10:30:00'
-  ElMessage.success('任务已驳回。')
-}
+function renderMap() {
+  disposeMap()
+  if (!task.value) return
 
-function handleRecommendReschedule() {
-  task.value.approval.status = 'adjusting'
-  task.value.approval.updatedAt = '2026-04-22 10:30:00'
-  ElMessage.info('已生成改期建议，请申请方按推荐窗口重新提交任务。')
-}
-
-function initMap() {
   const coords = task.value.routeCoords
   const center = coords[Math.floor(coords.length / 2)]
 
@@ -591,7 +336,7 @@ function initMap() {
     fillOpacity: 1,
   }).addTo(mapInstance).bindTooltip('降落点', { permanent: false, direction: 'top' })
 
-  if (task.value.weatherPrecheck.hitNoFlyZone) {
+  if (task.value.weatherPrecheck.hitNoFlyZone && coords.length >= 4) {
     const conflictArea = L.polygon(
       [
         [coords[2][0] + 0.01, coords[2][1] - 0.015],
@@ -617,15 +362,48 @@ function initMap() {
   mapInstance.fitBounds(routeLine.getBounds(), { padding: [28, 28] })
 }
 
+async function applyApproval(status: ApprovalStatus, successMessage: string) {
+  if (!task.value) return
+  const updated = await updatePlanningTaskApproval(task.value.taskId, status, approvalComment.value)
+  if (updated) {
+    task.value = updated
+    ElMessage.success(successMessage)
+  }
+}
+
+async function handleApprove() {
+  if (!task.value?.weatherPrecheck.canApprove) {
+    ElMessage.warning('当前任务命中气象禁飞条件，系统禁止审批通过。')
+    return
+  }
+  await applyApproval('approved', '任务已审批通过。')
+}
+
+async function handleReject() {
+  await applyApproval('rejected', '任务已驳回。')
+}
+
+async function handleRecommendReschedule() {
+  await applyApproval('adjusting', '已生成改期建议，请申请方按推荐窗口重新提交任务。')
+}
+
+function goBack() {
+  router.push('/planning/user-task')
+}
+
+watch(
+  () => route.params.id,
+  () => {
+    loadTask()
+  },
+)
+
 onMounted(() => {
-  nextTick(() => initMap())
+  loadTask()
 })
 
 onUnmounted(() => {
-  if (mapInstance) {
-    mapInstance.remove()
-    mapInstance = null
-  }
+  disposeMap()
 })
 </script>
 
