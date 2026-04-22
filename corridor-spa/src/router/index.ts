@@ -78,6 +78,7 @@ const routes: RouteRecordRaw[] = [
     },
     children: [
       { path: 'user-task', name: 'UserTask', component: () => import('@/views/planning/UserTask.vue'), meta: { title: '用户任务信息管理', sideMenuKey: 'user-task', topNav: 'planning' } },
+      { path: 'user-task/detail/:id', name: 'TaskDetail', component: () => import('@/views/planning/TaskDetail.vue'), meta: { title: '用户任务信息详情', sideMenuKey: 'user-task', topNav: 'planning' } },
       { path: 'beam-info', name: 'BeamInfo', component: () => import('@/views/planning/BeamInfo.vue'), meta: { title: '波束信息管理',     sideMenuKey: 'beam-info', topNav: 'planning' } },
     ],
   },

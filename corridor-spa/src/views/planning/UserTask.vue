@@ -1,120 +1,54 @@
 <template>
   <div class="user-task-page">
     <!-- 搜索区 -->
-    <div class="custom-card p-4 mb-4">
+    <div class="custom-card p-5 mb-4">
       <el-form :model="filter" class="search-form" label-width="80px">
-        <el-row :gutter="16">
-          <el-col :span="6">
-            <el-form-item label="任务ID">
-              <el-input v-model="filter.taskId" placeholder="输入任务ID" class="w-full custom-el-input" clearable />
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-6 flex-1">
+            <el-form-item label="任务ID" class="!mb-0 flex-1 max-w-[400px]">
+              <el-select v-model="filter.taskId" placeholder="请选择任务ID" class="w-full custom-el-select" clearable>
+                <el-option v-for="item in list" :key="item.taskId" :label="item.taskId" :value="item.taskId" />
+              </el-select>
             </el-form-item>
-          </el-col>
-          <el-col :span="6">
-            <el-form-item label="任务名称">
+            <el-form-item label="任务名称" class="!mb-0 flex-1 max-w-[400px]">
               <el-input v-model="filter.taskName" placeholder="请输入任务名称" class="w-full custom-el-input" clearable />
             </el-form-item>
-          </el-col>
-          <el-col :span="6">
-            <el-form-item label="失败原因">
-              <el-select v-model="filter.failReason" placeholder="全部" class="w-full custom-el-select" clearable>
-                <el-option label="全部" value="" />
-                <el-option label="人工驳回" value="manual" />
-                <el-option label="气象自动阻断" value="weather" />
-                <el-option label="空域冲突" value="airspace" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="6">
-            <el-form-item label="核验结果">
-              <el-select v-model="filter.verifyResult" placeholder="全部" class="w-full custom-el-select" clearable>
-                <el-option label="全部" value="" />
-                <el-option label="审核成功" value="审核成功" />
-                <el-option label="审核失败" value="审核失败" />
-                <el-option label="待核验" value="待核验" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row>
-          <el-col :span="24">
-            <div class="flex justify-end gap-2 h-[32px]">
-              <el-button @click="resetFilters" class="custom-btn">重置</el-button>
-              <el-button type="primary" @click="doSearch" class="custom-btn custom-btn-primary">查询</el-button>
-            </div>
-          </el-col>
-        </el-row>
+          </div>
+          <div class="flex justify-end gap-3 h-[32px]">
+            <el-button @click="resetFilters" class="custom-btn bg-white">重置</el-button>
+            <el-button type="primary" @click="doSearch" class="custom-btn custom-btn-primary">查询</el-button>
+          </div>
+        </div>
       </el-form>
     </div>
 
     <!-- 列表区 -->
-    <div class="custom-card flex-1 flex flex-col p-5 overflow-hidden relative">
-      <div class="flex justify-between items-center mb-4">
-        <div class="text-[14px] font-medium text-[#333] leading-none">用户任务信息</div>
-        <el-button class="custom-btn-primary" @click="showCreateDialog = true">
-          <el-icon class="mr-1"><Plus /></el-icon> 新建飞行任务
-        </el-button>
+    <div class="custom-card flex-1 flex flex-col p-6 overflow-hidden relative">
+      <div class="flex justify-between items-center mb-6">
+        <div class="text-[16px] font-bold text-[#333] leading-none">用户任务信息</div>
       </div>
 
       <!-- 数据表格 -->
       <el-table
         :data="filteredList"
         v-loading="loading"
-        class="custom-el-table flex-1 mt-2"
-        :header-cell-style="{ background: '#fafafa', color: '#8c8c8c', fontWeight: '500', fontSize: '13px', borderBottom: '1px solid #f0f0f0' }"
-        :cell-style="{ color: '#333', fontSize: '13px', borderBottom: '1px solid #f5f5f5' }"
+        class="custom-el-table flex-1"
+        :header-cell-style="{ background: '#fff', color: '#333', fontWeight: 'bold', fontSize: '13px', borderBottom: '1px solid #f0f0f0', padding: '12px 0' }"
+        :cell-style="{ color: '#333', fontSize: '13px', borderBottom: '1px solid #f5f5f5', padding: '12px 0' }"
       >
         <el-table-column type="selection" width="50" align="center" />
-        <el-table-column label="序号" type="index" width="60" align="center" />
+        <el-table-column label="序号" type="index" width="80" align="center" />
         <el-table-column prop="taskId" label="任务ID" min-width="150" />
-        <el-table-column prop="taskName" label="任务名称" min-width="110" />
-        <el-table-column label="拟飞机型" min-width="160">
+        <el-table-column prop="taskName" label="任务名称" min-width="150" />
+        <el-table-column prop="userId" label="用户ID" min-width="100" />
+        <el-table-column prop="userName" label="用户名称" min-width="120" />
+        <el-table-column prop="bizType" label="业务类型" min-width="120" />
+        <el-table-column prop="submitTime" label="提交时间" min-width="180" />
+        <el-table-column prop="verifyTime" label="校验时间" min-width="180" />
+        <el-table-column prop="verifyResult" label="校验结果" min-width="100" />
+        <el-table-column label="操作" width="100" fixed="right" align="center">
           <template #default="scope">
-            <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="text-[13px]">{{ scope.row.uavName }}</span>
-              <span class="uav-class-badge" :class="uavClassStyle(scope.row.uavClass)">{{ scope.row.uavClass }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="系统预检" width="170" align="center">
-          <template #default="scope">
-            <div class="flex justify-center">
-              <!-- 通过状态 -->
-              <span v-if="scope.row.precheckStatus === 'pass'" class="precheck-badge precheck-pass">
-                <i class="ri-checkbox-circle-fill mr-0.5"></i> 系统预检通过
-              </span>
-              <!-- 一级气象熔断 -->
-              <span v-else-if="scope.row.precheckStatus === 'block-l1'" class="precheck-badge precheck-block-l1">
-                🔴 一级气象熔断
-              </span>
-              <!-- 二级气象熔断 -->
-              <span v-else-if="scope.row.precheckStatus === 'block-l2'" class="precheck-badge precheck-block-l2">
-                🟠 二级气象熔断
-              </span>
-              <!-- 三级气象熔断 -->
-              <span v-else-if="scope.row.precheckStatus === 'block-l3'" class="precheck-badge precheck-block-l3">
-                🟡 三级气象熔断
-              </span>
-              <!-- 人工驳回 -->
-              <span v-else-if="scope.row.precheckStatus === 'manual-reject'" class="precheck-badge precheck-manual">
-                <i class="ri-user-unfollow-line mr-0.5"></i> 人工驳回
-              </span>
-              <!-- 待检 -->
-              <span v-else class="precheck-badge precheck-pending">
-                <i class="ri-time-line mr-0.5"></i> 预检中…
-              </span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="bizType" label="业务类型" width="100" align="center" />
-        <el-table-column prop="submitTime" label="提交时间" min-width="158" align="center" />
-        <el-table-column prop="verifyResult" label="核验结果" width="100" align="center">
-          <template #default="scope">
-            <span :class="resultClass(scope.row.verifyResult)">{{ scope.row.verifyResult }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="80" fixed="right" align="center">
-          <template #default="scope">
-            <span class="text-[#004b9e] cursor-pointer hover:text-[#005bc4] text-[13px]" @click="openDetail(scope.row)">详情</span>
+            <span class="text-[#004b9e] cursor-pointer hover:text-[#005bc4] text-[13px]" @click="goToDetail(scope.row)">详情</span>
           </template>
         </el-table-column>
       </el-table>
@@ -128,7 +62,7 @@
           :page-sizes="[10, 20, 50]"
           :background="false"
           layout="total, prev, pager, next, sizes, jumper"
-          :total="filteredList.length"
+          :total="318"
         />
       </div>
     </div>
@@ -350,6 +284,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { mockNoFlyZones } from '@/mock/weatherData'
@@ -374,32 +309,39 @@ interface TaskItem {
   failReason?: string
 }
 
+const router = useRouter()
 const loading = ref(false)
-const filter = reactive({ taskId: '', taskName: '', failReason: '', verifyResult: '' })
+const filter = reactive({ taskId: '', taskName: '' })
 const pagination = reactive({ page: 1, pageSize: 20 })
 
 const list = ref<TaskItem[]>([
-  { taskId: 'MIS000000689', taskName: '0417巡检', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-17 11:23:12', verifyTime: '2026-04-17 11:23:12', verifyResult: '审核成功', uavType: 'Heavy_Industry', uavName: '工业级防雨大负载', uavClass: '多旋翼', precheckStatus: 'pass' },
-  { taskId: 'MIS000000688', taskName: '04171116快递', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-17 11:17:16', verifyTime: '2026-04-17 11:17:18', verifyResult: '审核成功', uavType: 'Heavy_Industry', uavName: '工业级防雨大负载', uavClass: '多旋翼', precheckStatus: 'pass' },
-  { taskId: 'MIS000000687', taskName: '04171034巡检', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 10:34:52', verifyTime: '2026-04-17 10:34:52', verifyResult: '审核失败', uavType: 'DJI', uavName: '大疆 M300', uavClass: '多旋翼', precheckStatus: 'block-l1', conflictGrid: 'Grid-A02-15', conflictReason: '预报阵风达 22m/s，触发固定翼及多旋翼全线阈值', conflictLevel: '一级绝对禁飞', failReason: 'weather' },
-  { taskId: 'MIS000000686', taskName: '4171032物流', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-17 10:32:51', verifyTime: '2026-04-17 10:32:51', verifyResult: '审核失败', uavType: 'Micro_Quadcopter', uavName: '微型四旋翼', uavClass: '多旋翼', precheckStatus: 'block-l3', conflictGrid: 'Grid-B05-22', conflictReason: '阵风 12m/s 超出多旋翼安全阈值 (10m/s)', conflictLevel: '三级禁飞', failReason: 'weather' },
-  { taskId: 'MIS000000685', taskName: '04171014巡检', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 10:15:11', verifyTime: '2026-04-17 10:15:11', verifyResult: '审核成功', uavType: 'FixedWing_Light', uavName: '固定翼巡航', uavClass: '固定翼', precheckStatus: 'pass' },
-  { taskId: 'MIS000000684', taskName: '04170954巡检', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 09:55:13', verifyTime: '2026-04-17 09:55:13', verifyResult: '审核成功', uavType: 'FixedWing_Light', uavName: '固定翼巡航', uavClass: '固定翼', precheckStatus: 'pass' },
-  { taskId: 'MIS000000682', taskName: '04170909货运', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-17 09:28:51', verifyTime: '2026-04-17 09:28:51', verifyResult: '审核失败', uavType: 'DJI', uavName: '大疆 M300', uavClass: '多旋翼', precheckStatus: 'manual-reject', failReason: 'manual' },
-  { taskId: 'MIS000000647', taskName: '04161648物流', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-16 16:49:08', verifyTime: '2026-04-16 16:49:08', verifyResult: '审核成功', uavType: 'Heavy_Industry', uavName: '工业级防雨大负载', uavClass: 'VTOL', precheckStatus: 'pass' },
-  { taskId: 'MIS000000646', taskName: '04161529物流', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-16 15:29:59', verifyTime: '2026-04-16 15:29:59', verifyResult: '审核成功', uavType: 'Heavy_Industry', uavName: '工业级防雨大负载', uavClass: 'VTOL', precheckStatus: 'pass' },
-  { taskId: 'MIS000000645', taskName: '04161527货运', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-16 15:27:51', verifyTime: '2026-04-16 15:27:51', verifyResult: '审核失败', uavType: 'DJI', uavName: '大疆 M300', uavClass: '多旋翼', precheckStatus: 'block-l2', conflictGrid: 'Grid-C03-08', conflictReason: '降水量 16mm/h 触发 VTOL 及多旋翼阈值', conflictLevel: '二级禁飞', failReason: 'weather' },
-  { taskId: 'MIS000000644', taskName: '04161347巡检', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-16 13:48:32', verifyTime: '2026-04-16 13:48:32', verifyResult: '审核成功', uavType: 'FixedWing_Light', uavName: '固定翼巡航', uavClass: '固定翼', precheckStatus: 'pass' },
-  { taskId: 'MIS000000643', taskName: '04161147巡检', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-16 11:48:47', verifyTime: '2026-04-16 11:48:47', verifyResult: '审核成功', uavType: 'FixedWing_Light', uavName: '固定翼巡航', uavClass: '固定翼', precheckStatus: 'pass' },
+  { taskId: 'MIS000000740', taskName: '04220955', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-22 09:55:49', verifyTime: '2026-04-22 09:55:49', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000739', taskName: '04220927', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-22 09:27:36', verifyTime: '2026-04-22 09:27:36', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000738', taskName: '04211718', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-21 17:18:47', verifyTime: '2026-04-21 17:18:47', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000737', taskName: '04211627', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-21 16:27:33', verifyTime: '2026-04-21 16:27:33', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000736', taskName: '04211626', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-21 16:26:54', verifyTime: '2026-04-21 16:26:54', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000729', taskName: '04211444', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-21 14:44:47', verifyTime: '2026-04-21 14:44:47', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000728', taskName: '04211011', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-21 10:12:05', verifyTime: '2026-04-21 10:12:05', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000727', taskName: '04211009', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-21 10:09:32', verifyTime: '2026-04-21 10:09:32', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000696', taskName: '04171724', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 17:25:26', verifyTime: '2026-04-17 17:25:26', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000695', taskName: '04171720', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 17:20:52', verifyTime: '2026-04-17 17:20:52', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000694', taskName: '04171714', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 17:15:22', verifyTime: '2026-04-17 17:15:22', verifyResult: '审核失败', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000693', taskName: '04171502', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 15:04:07', verifyTime: '2026-04-17 15:04:07', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000692', taskName: '04171503', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 15:04:03', verifyTime: '2026-04-17 15:04:03', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000691', taskName: '04171436', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 14:42:28', verifyTime: '2026-04-17 14:42:28', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000690', taskName: '04171442', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 14:42:23', verifyTime: '2026-04-17 14:42:23', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000689', taskName: '0417', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-17 11:23:12', verifyTime: '2026-04-17 11:23:12', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000688', taskName: '04171116', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-17 11:17:18', verifyTime: '2026-04-17 11:17:18', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000687', taskName: '04171034', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 10:34:52', verifyTime: '2026-04-17 10:34:52', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000686', taskName: '4171032', userId: '1', userName: 'Super', bizType: '智慧物流', submitTime: '2026-04-17 10:32:51', verifyTime: '2026-04-17 10:32:51', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
+  { taskId: 'MIS000000685', taskName: '04171014', userId: '1', userName: 'Super', bizType: '高速巡检', submitTime: '2026-04-17 10:15:11', verifyTime: '2026-04-17 10:15:11', verifyResult: '审核成功', uavType: '', uavName: '', uavClass: '', precheckStatus: 'pass' },
 ])
 
 const filteredList = computed(() => {
   return list.value.filter(item => {
     const matchId = !filter.taskId || item.taskId.includes(filter.taskId)
     const matchName = !filter.taskName || item.taskName.includes(filter.taskName)
-    const matchFail = !filter.failReason || item.failReason === filter.failReason
-    const matchResult = !filter.verifyResult || item.verifyResult === filter.verifyResult
-    return matchId && matchName && matchFail && matchResult
+    return matchId && matchName
   })
 })
 
@@ -409,7 +351,7 @@ function doSearch() {
 }
 
 function resetFilters() {
-  Object.assign(filter, { taskId: '', taskName: '', failReason: '', verifyResult: '' })
+  Object.assign(filter, { taskId: '', taskName: '' })
   doSearch()
 }
 
@@ -462,7 +404,11 @@ const selectedTask = ref<TaskItem | null>(null)
 const newTask = reactive({ name: '', uavType: '', timeOffset: 0 })
 const conflictInfo = ref<{ name: string, reason: string, suggestTime: number } | null>(null)
 
-function openDetail(row: TaskItem) {
+function goToDetail(row: TaskItem) {
+  router.push(`/planning/user-task/detail/${row.taskId}`)
+}
+
+function openQuickDrawer(row: TaskItem) {
   selectedTask.value = row
   showReroute.value = false
   showDetailDrawer.value = true
