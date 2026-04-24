@@ -1,18 +1,17 @@
 import { delay, paginate, type PageQuery, type PageResult } from './common'
 import {
+  BEAM_LIST,
   PLANNING_TASK_DETAIL_MAP,
   PLANNING_TASK_SUMMARY_LIST,
-  BEAM_LIST,
-  type ApprovalInfo,
-  type ApprovalStatus,
   type BeamRecord,
   type PlanningTaskDetail,
   type PlanningTaskStats,
   type PlanningTaskSummary,
-  type PrecheckStatus,
+  type ReviewStatus,
   type RouteInfo,
   type SafeTimeWindow,
-  type WeatherPrecheckInfo,
+  type WeatherBlockInfo,
+  type WeatherCheckStatus,
 } from '@/mock/planning'
 import { AIRCRAFT_LIST, type AircraftRecord } from '@/mock/aircraft'
 import { HEALTH_ALERT_LIST, type HealthAlertRecord } from '@/mock/health'
@@ -32,16 +31,14 @@ function filterPlanningTasks(
     taskId?: string
     taskName?: string
     bizType?: string
-    precheckStatus?: PrecheckStatus | ''
-    approvalStatus?: ApprovalStatus | ''
+    reviewStatus?: ReviewStatus | ''
   } = {},
 ) {
   return planningTaskSummaries.filter(task => {
     if (filter.taskId && !task.taskId.includes(filter.taskId)) return false
     if (filter.taskName && !task.taskName.includes(filter.taskName)) return false
     if (filter.bizType && task.bizType !== filter.bizType) return false
-    if (filter.precheckStatus && task.weatherPrecheck.status !== filter.precheckStatus) return false
-    if (filter.approvalStatus && task.approval.status !== filter.approvalStatus) return false
+    if (filter.reviewStatus && task.reviewStatus !== filter.reviewStatus) return false
     return true
   })
 }
@@ -51,8 +48,7 @@ export async function getPlanningTaskList(
     taskId?: string
     taskName?: string
     bizType?: string
-    precheckStatus?: PrecheckStatus | ''
-    approvalStatus?: ApprovalStatus | ''
+    reviewStatus?: ReviewStatus | ''
   } = {},
   pq: PageQuery = { page: 1, pageSize: 10 },
 ): Promise<PageResult<PlanningTaskSummary>> {
@@ -65,18 +61,15 @@ export async function getPlanningTaskStats(
     taskId?: string
     taskName?: string
     bizType?: string
-    precheckStatus?: PrecheckStatus | ''
-    approvalStatus?: ApprovalStatus | ''
+    reviewStatus?: ReviewStatus | ''
   } = {},
 ): Promise<PlanningTaskStats> {
   await delay()
   const list = filterPlanningTasks(filter)
   return {
     today: list.length,
-    pending: list.filter(item => item.approval.status === 'pending').length,
-    blocked: list.filter(item =>
-      ['blocked', 'all_day_blocked'].includes(item.weatherPrecheck.status),
-    ).length,
+    passed: list.filter(item => item.reviewStatus === 'passed').length,
+    failed: list.filter(item => item.reviewStatus === 'failed').length,
   }
 }
 
@@ -84,28 +77,6 @@ export async function getPlanningTaskDetail(taskId: string): Promise<PlanningTas
   await delay()
   const task = planningTaskDetails[taskId]
   return task ? clone(task) : null
-}
-
-export async function updatePlanningTaskApproval(
-  taskId: string,
-  status: ApprovalStatus,
-  comment = '',
-): Promise<PlanningTaskDetail | null> {
-  await delay()
-  const detail = planningTaskDetails[taskId]
-  if (!detail) return null
-
-  detail.approval = {
-    status,
-    comment,
-    updatedAt: '2026-04-22 10:30:00',
-  }
-
-  planningTaskSummaries = planningTaskSummaries.map(item =>
-    item.taskId === taskId ? { ...item, approval: { status } } : item,
-  )
-
-  return clone(detail)
 }
 
 export async function getBeamList(pq: PageQuery = { page: 1, pageSize: 10 }): Promise<PageResult<BeamRecord>> {
@@ -150,12 +121,11 @@ export type {
   PlanningTaskSummary,
   PlanningTaskDetail,
   PlanningTaskStats,
-  PrecheckStatus,
-  ApprovalStatus,
-  WeatherPrecheckInfo,
+  ReviewStatus,
+  WeatherCheckStatus,
+  WeatherBlockInfo,
   SafeTimeWindow,
   RouteInfo,
-  ApprovalInfo,
   BeamRecord,
   AircraftRecord,
   HealthAlertRecord,

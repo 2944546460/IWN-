@@ -6,13 +6,13 @@
         <div class="text-[32px] font-normal text-[#333] leading-none">{{ stats.today }}</div>
       </div>
       <div class="custom-card flex-1 p-5 flex flex-col justify-between" style="min-height: 96px;">
-        <div class="text-[13px] text-[#595959] mb-3">待审批任务数</div>
-        <div class="text-[32px] font-normal text-[#333] leading-none">{{ stats.pending }}</div>
+        <div class="text-[13px] text-[#595959] mb-3">审核通过数</div>
+        <div class="text-[32px] font-normal text-[#333] leading-none">{{ stats.passed }}</div>
       </div>
       <div class="custom-card flex-1 p-5 flex flex-col justify-between" style="min-height: 96px;">
-        <div class="text-[13px] text-[#595959] mb-3">阻断任务数</div>
-        <div class="text-[32px] font-normal leading-none" :class="stats.blocked > 0 ? 'text-[#ff4d4f]' : 'text-[#333]'">
-          {{ stats.blocked }}
+        <div class="text-[13px] text-[#595959] mb-3">审核不通过数</div>
+        <div class="text-[32px] font-normal leading-none" :class="stats.failed > 0 ? 'text-[#ff4d4f]' : 'text-[#333]'">
+          {{ stats.failed }}
         </div>
       </div>
     </div>
@@ -24,51 +24,28 @@
         <el-row :gutter="24">
           <el-col :span="6">
             <el-form-item label="任务 ID" label-width="72px">
-              <el-input
-                v-model="filter.taskId"
-                placeholder="请输入任务 ID"
-                clearable
-                class="w-full custom-el-input"
-                @change="resetPage"
-              />
+              <el-input v-model="filter.taskId" placeholder="请输入任务 ID" clearable class="w-full custom-el-input" @change="resetPage" />
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="任务名称" label-width="72px">
-              <el-input
-                v-model="filter.taskName"
-                placeholder="请输入任务名称"
-                clearable
-                class="w-full custom-el-input"
-                @change="resetPage"
-              />
+              <el-input v-model="filter.taskName" placeholder="请输入任务名称" clearable class="w-full custom-el-input" @change="resetPage" />
             </el-form-item>
           </el-col>
           <el-col :span="6">
             <el-form-item label="业务类型" label-width="72px">
-              <el-select
-                v-model="filter.bizType"
-                placeholder="全部"
-                clearable
-                class="w-full custom-el-select"
-                @change="resetPage"
-              >
+              <el-select v-model="filter.bizType" placeholder="全部" clearable class="w-full custom-el-select" @change="resetPage">
                 <el-option label="全部" value="" />
                 <el-option v-for="item in bizTypeOptions" :key="item" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="6">
-            <el-form-item label="预检状态" label-width="72px">
-              <el-select
-                v-model="filter.precheckStatus"
-                placeholder="全部"
-                clearable
-                class="w-full custom-el-select"
-                @change="resetPage"
-              >
+            <el-form-item label="审核结果" label-width="72px">
+              <el-select v-model="filter.reviewStatus" placeholder="全部" clearable class="w-full custom-el-select" @change="resetPage">
                 <el-option label="全部" value="" />
-                <el-option v-for="item in precheckOptions" :key="item.value" :label="item.label" :value="item.value" />
+                <el-option label="审核通过" value="passed" />
+                <el-option label="审核不通过" value="failed" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -97,16 +74,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="planTime" label="计划起飞时间" min-width="150" />
-        <el-table-column label="预检状态" min-width="110" align="center">
+        <el-table-column label="审核结果" min-width="110" align="center">
           <template #default="{ row }">
-            <span class="status-tag" :class="precheckClass(row.weatherPrecheck.status)">
-              {{ precheckLabel(row.weatherPrecheck.status) }}
+            <span class="status-tag" :class="row.reviewStatus === 'passed' ? 'status-pass' : 'status-fail'">
+              {{ row.reviewStatus === 'passed' ? '审核通过' : '审核不通过' }}
             </span>
-          </template>
-        </el-table-column>
-        <el-table-column label="审批状态" min-width="100" align="center">
-          <template #default="{ row }">
-            <span :class="approvalTextClass(row.approval.status)">{{ approvalLabel(row.approval.status) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="90" align="center" fixed="right">
@@ -140,23 +112,22 @@ import { useRouter } from 'vue-router'
 import {
   getPlanningTaskList,
   getPlanningTaskStats,
-  type ApprovalStatus,
   type PlanningTaskStats,
   type PlanningTaskSummary,
-  type PrecheckStatus,
+  type ReviewStatus,
 } from '@/api/modules'
 
 const router = useRouter()
 const loading = ref(false)
 const list = ref<PlanningTaskSummary[]>([])
 const total = ref(0)
-const stats = ref<PlanningTaskStats>({ today: 0, pending: 0, blocked: 0 })
+const stats = ref<PlanningTaskStats>({ today: 0, passed: 0, failed: 0 })
 
 const filter = reactive({
   taskId: '',
   taskName: '',
   bizType: '',
-  precheckStatus: '' as PrecheckStatus | '',
+  reviewStatus: '' as ReviewStatus | '',
 })
 
 const pagination = reactive({
@@ -164,15 +135,7 @@ const pagination = reactive({
   pageSize: 10,
 })
 
-const precheckOptions = [
-  { label: '待预检', value: 'pending' },
-  { label: '预检通过', value: 'pass' },
-  { label: '存在风险', value: 'risk' },
-  { label: '气象阻断', value: 'blocked' },
-  { label: '全天候禁飞', value: 'all_day_blocked' },
-]
-
-const bizTypeOptions = computed(() => ['高速巡检', '应急物流', '电力巡检', '文旅航拍', '智慧物流'])
+const bizTypeOptions = computed(() => ['高速巡检', '应急物流', '电力巡检', '智慧物流'])
 const indexOffset = computed(() => (pagination.page - 1) * pagination.pageSize + 1)
 
 const tableHeaderStyle = {
@@ -194,12 +157,8 @@ function buildFilter() {
     taskId: filter.taskId,
     taskName: filter.taskName,
     bizType: filter.bizType,
-    precheckStatus: filter.precheckStatus,
+    reviewStatus: filter.reviewStatus,
   }
-}
-
-async function loadStats() {
-  stats.value = await getPlanningTaskStats(buildFilter())
 }
 
 async function loadList() {
@@ -224,7 +183,7 @@ function resetFilters() {
     taskId: '',
     taskName: '',
     bizType: '',
-    precheckStatus: '',
+    reviewStatus: '',
   })
   resetPage()
 }
@@ -240,47 +199,7 @@ function uavClassClass(value: string) {
   return 'uav-default'
 }
 
-function precheckLabel(status: PrecheckStatus) {
-  const map: Record<PrecheckStatus, string> = {
-    pending: '待预检',
-    pass: '预检通过',
-    risk: '存在风险',
-    blocked: '气象阻断',
-    all_day_blocked: '全天候禁飞',
-  }
-  return map[status]
-}
-
-function precheckClass(status: PrecheckStatus) {
-  const map: Record<PrecheckStatus, string> = {
-    pending: 'status-pending',
-    pass: 'status-pass',
-    risk: 'status-risk',
-    blocked: 'status-blocked',
-    all_day_blocked: 'status-all-day',
-  }
-  return map[status]
-}
-
-function approvalLabel(status: ApprovalStatus) {
-  const map: Record<ApprovalStatus, string> = {
-    pending: '待审批',
-    approved: '已通过',
-    rejected: '已驳回',
-    adjusting: '待调整',
-    blocked: '已阻断',
-  }
-  return map[status]
-}
-
-function approvalTextClass(status: ApprovalStatus) {
-  if (status === 'approved') return 'text-[#52c41a] font-medium'
-  if (status === 'rejected' || status === 'blocked') return 'text-[#ff4d4f] font-medium'
-  return 'text-[#004b9e] font-medium'
-}
-
 onMounted(() => {
-  loadStats()
   loadList()
 })
 </script>
@@ -314,15 +233,8 @@ onMounted(() => {
   color: #333;
 }
 
-.search-form :deep(.el-form-item) {
-  margin-bottom: 0;
-}
-
-.search-form :deep(.el-form-item__label) {
-  color: #595959;
-  font-size: 13px;
-  font-weight: normal;
-}
+.search-form :deep(.el-form-item) { margin-bottom: 0; }
+.search-form :deep(.el-form-item__label) { color: #595959; font-size: 13px; font-weight: normal; }
 
 :deep(.custom-el-input .el-input__wrapper),
 :deep(.custom-el-select .el-select__wrapper) {
@@ -339,16 +251,6 @@ onMounted(() => {
   border-color: #004b9e !important;
 }
 
-:deep(.el-input__inner) {
-  color: #333;
-  font-size: 13px;
-}
-
-:deep(.el-input__inner::placeholder),
-:deep(.el-select__placeholder) {
-  color: #bfbfbf;
-}
-
 .custom-btn {
   height: 32px;
   padding: 0 16px;
@@ -358,31 +260,12 @@ onMounted(() => {
   color: #595959;
 }
 
-.custom-btn:hover {
-  color: #004b9e;
-  border-color: #004b9e;
-  background: #fff;
-}
+.custom-btn:hover { color: #004b9e; border-color: #004b9e; background: #fff; }
+.custom-btn-primary { background: #004b9e !important; border-color: #004b9e !important; color: #fff !important; }
+.custom-btn-primary:hover { background: #005bc4 !important; border-color: #005bc4 !important; }
 
-.custom-btn-primary {
-  background: #004b9e !important;
-  border-color: #004b9e !important;
-  color: #fff !important;
-}
-
-.custom-btn-primary:hover {
-  background: #005bc4 !important;
-  border-color: #005bc4 !important;
-}
-
-.custom-el-table {
-  --el-table-border-color: transparent;
-  --el-table-row-hover-bg-color: #f5f7fa;
-}
-
-.custom-el-table::before {
-  display: none;
-}
+.custom-el-table { --el-table-border-color: transparent; --el-table-row-hover-bg-color: #f5f7fa; }
+.custom-el-table::before { display: none; }
 
 .status-tag,
 .uav-tag {
@@ -398,99 +281,29 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.uav-multirotor {
-  color: #1677ff;
-  background: #f0f7ff;
-  border-color: #b6d7ff;
-}
+.uav-multirotor { color: #1677ff; background: #f0f7ff; border-color: #b6d7ff; }
+.uav-fixedwing { color: #52c41a; background: #f6ffed; border-color: #b7eb8f; }
+.uav-vtol { color: #fa8c16; background: #fff7e6; border-color: #ffd591; }
+.uav-default { color: #595959; background: #fafafa; border-color: #d9d9d9; }
 
-.uav-fixedwing {
-  color: #52c41a;
-  background: #f6ffed;
-  border-color: #b7eb8f;
-}
+.status-pass { color: #52c41a; background: #f6ffed; border-color: #b7eb8f; }
+.status-fail { color: #ff4d4f; background: #fff1f0; border-color: #ffb3b3; }
 
-.uav-vtol {
-  color: #fa8c16;
-  background: #fff7e6;
-  border-color: #ffd591;
-}
-
-.uav-default {
-  color: #595959;
-  background: #fafafa;
-  border-color: #d9d9d9;
-}
-
-.status-pending {
-  color: #1677ff;
-  background: #f0f7ff;
-  border-color: #91caff;
-}
-
-.status-pass {
-  color: #52c41a;
-  background: #f6ffed;
-  border-color: #b7eb8f;
-}
-
-.status-risk {
-  color: #fa8c16;
-  background: #fff7e6;
-  border-color: #ffd591;
-}
-
-.status-blocked {
-  color: #ff4d4f;
-  background: #fff1f0;
-  border-color: #ffb3b3;
-}
-
-.status-all-day {
-  color: #ffffff;
-  background: #3a0f14;
-  border-color: #3a0f14;
-}
-
-.action-link {
-  color: #004b9e;
-  cursor: pointer;
-  font-size: 13px;
-}
-
-.action-link:hover {
-  color: #005bc4;
-}
+.action-link { color: #004b9e; cursor: pointer; font-size: 13px; }
+.action-link:hover { color: #005bc4; }
 
 .custom-pagination :deep(.el-pager li) {
   background: #fff;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
   color: #595959;
-  font-weight: normal;
   min-width: 28px;
   height: 28px;
   line-height: 28px;
 }
 
-.custom-pagination :deep(.el-pager li.is-active) {
-  background: #fff;
-  border-color: #004b9e;
-  color: #004b9e;
-}
-
-.custom-pagination :deep(.el-pagination__sizes .el-input__wrapper) {
-  height: 28px;
-  box-shadow: none;
-  border: 1px solid #d9d9d9;
-}
-
+.custom-pagination :deep(.el-pager li.is-active) { background: #fff; border-color: #004b9e; color: #004b9e; }
+.custom-pagination :deep(.el-pagination__sizes .el-input__wrapper) { height: 28px; box-shadow: none; border: 1px solid #d9d9d9; }
 .custom-pagination :deep(.btn-prev),
-.custom-pagination :deep(.btn-next) {
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  height: 28px;
-  min-width: 28px;
-}
+.custom-pagination :deep(.btn-next) { background: #fff; border: 1px solid #d9d9d9; border-radius: 4px; height: 28px; min-width: 28px; }
 </style>

@@ -1,5 +1,5 @@
-export type PrecheckStatus = 'pending' | 'pass' | 'risk' | 'blocked' | 'all_day_blocked'
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'adjusting' | 'blocked'
+export type ReviewStatus = 'passed' | 'failed'
+export type WeatherCheckStatus = 'pass' | 'blocked'
 
 export interface RouteInfo {
   mode: string
@@ -14,20 +14,14 @@ export interface RouteInfo {
   duration: string
 }
 
-export interface WeatherPrecheckInfo {
-  status: PrecheckStatus
-  summary: string
-  advice: string
+export interface WeatherBlockInfo {
+  status: WeatherCheckStatus
   checkedAt: string
   weatherDataAt: string
   ruleVersion: string
-  uavClass: string
-  hitNoFlyZone: boolean
-  canApprove: boolean
-  affectedSegment?: string
+  reason?: string
   conflictGrid?: string
   conflictTimeRange?: string
-  conflictLevel?: string
   triggerRule?: string
   weatherFactor?: string
   actualValue?: string
@@ -43,12 +37,6 @@ export interface SafeTimeWindow {
   available: boolean
 }
 
-export interface ApprovalInfo {
-  status: ApprovalStatus
-  updatedAt: string
-  comment?: string
-}
-
 export interface PlanningTaskSummary {
   taskId: string
   taskName: string
@@ -56,12 +44,7 @@ export interface PlanningTaskSummary {
   corridorName: string
   uavClass: string
   planTime: string
-  weatherPrecheck: {
-    status: PrecheckStatus
-  }
-  approval: {
-    status: ApprovalStatus
-  }
+  reviewStatus: ReviewStatus
 }
 
 export interface PlanningTaskDetail {
@@ -76,17 +59,17 @@ export interface PlanningTaskDetail {
   uavClass: string
   submitTime: string
   description: string
+  reviewStatus: ReviewStatus
   routeInfo: RouteInfo
   routeCoords: [number, number][]
-  weatherPrecheck: WeatherPrecheckInfo
+  weatherCheck: WeatherBlockInfo
   safeWindows: SafeTimeWindow[]
-  approval: ApprovalInfo
 }
 
 export interface PlanningTaskStats {
   today: number
-  pending: number
-  blocked: number
+  passed: number
+  failed: number
 }
 
 export interface BeamRecord {
@@ -114,6 +97,7 @@ export const PLANNING_TASK_DETAIL_MAP: Record<string, PlanningTaskDetail> = {
     uavClass: '多旋翼',
     submitTime: '2026-04-22 10:18:32',
     description: '对 G56 杭瑞高速西延段开展例行巡检任务。',
+    reviewStatus: 'failed',
     routeInfo: {
       mode: '单程航线',
       corridor: 'G56 杭瑞高速西延段',
@@ -134,20 +118,14 @@ export const PLANNING_TASK_DETAIL_MAP: Record<string, PlanningTaskDetail> = {
       [30.242, 119.902],
       [30.238, 119.878],
     ],
-    weatherPrecheck: {
+    weatherCheck: {
       status: 'blocked',
-      summary: '当前任务命中三级气象禁飞区，系统禁止直接审批通过。',
-      advice: '建议改期至推荐窗口重新提交；如业务紧急，请调整任务时段后再次发起审批。',
       checkedAt: '2026-04-22 10:20:15',
       weatherDataAt: '2026-04-22 10:19:00',
       ruleVersion: 'WR-2026.04.22-01',
-      uavClass: '多旋翼',
-      hitNoFlyZone: true,
-      canApprove: false,
-      affectedSegment: 'K12+300 至 K18+100',
+      reason: '当前任务命中三级气象禁飞区，系统审核不通过。',
       conflictGrid: 'GRID-HZ-03-128',
       conflictTimeRange: '2026-04-22 14:00 - 15:00',
-      conflictLevel: '三级禁飞',
       triggerRule: '多旋翼风速 > 12m/s 禁飞',
       weatherFactor: '阵风风速',
       actualValue: '14.8 m/s',
@@ -171,10 +149,6 @@ export const PLANNING_TASK_DETAIL_MAP: Record<string, PlanningTaskDetail> = {
         available: true,
       },
     ],
-    approval: {
-      status: 'blocked',
-      updatedAt: '2026-04-22 10:20:15',
-    },
   },
   MIS000000717: {
     taskId: 'MIS000000717',
@@ -188,6 +162,7 @@ export const PLANNING_TASK_DETAIL_MAP: Record<string, PlanningTaskDetail> = {
     uavClass: 'VTOL',
     submitTime: '2026-04-22 09:52:10',
     description: '向临安医疗专用廊道投送应急药品与耗材。',
+    reviewStatus: 'passed',
     routeInfo: {
       mode: '单程航线',
       corridor: '临安医疗专用廊道',
@@ -207,31 +182,13 @@ export const PLANNING_TASK_DETAIL_MAP: Record<string, PlanningTaskDetail> = {
       [30.222, 119.995],
       [30.216, 119.978],
     ],
-    weatherPrecheck: {
+    weatherCheck: {
       status: 'pass',
-      summary: '未来飞行时段内未命中气象禁飞区，可进入审批流程。',
-      advice: '气象条件满足当前机型飞行要求，可按计划执行任务。',
       checkedAt: '2026-04-22 09:53:40',
       weatherDataAt: '2026-04-22 09:53:00',
       ruleVersion: 'WR-2026.04.22-01',
-      uavClass: 'VTOL',
-      hitNoFlyZone: false,
-      canApprove: true,
     },
-    safeWindows: [
-      {
-        startTime: '2026-04-22 15:30',
-        endTime: '2026-04-22 16:00',
-        duration: '30 min',
-        level: '当前可飞',
-        reason: '沿线风速、降水均处于安全范围内。',
-        available: true,
-      },
-    ],
-    approval: {
-      status: 'pending',
-      updatedAt: '2026-04-22 09:53:40',
-    },
+    safeWindows: [],
   },
   MIS000000716: {
     taskId: 'MIS000000716',
@@ -245,6 +202,7 @@ export const PLANNING_TASK_DETAIL_MAP: Record<string, PlanningTaskDetail> = {
     uavClass: '固定翼',
     submitTime: '2026-04-22 09:40:08',
     description: '对滨江东段电力巡检廊道执行定时巡线任务。',
+    reviewStatus: 'failed',
     routeInfo: {
       mode: '单程航线',
       corridor: '滨江东段巡检廊道',
@@ -264,20 +222,14 @@ export const PLANNING_TASK_DETAIL_MAP: Record<string, PlanningTaskDetail> = {
       [30.196, 119.99],
       [30.191, 119.96],
     ],
-    weatherPrecheck: {
+    weatherCheck: {
       status: 'blocked',
-      summary: '沿线中段命中气象禁飞区，当前任务被系统阻断。',
-      advice: '建议改期，等待中段网格风速下降后重新评估。',
       checkedAt: '2026-04-22 09:42:10',
       weatherDataAt: '2026-04-22 09:41:00',
       ruleVersion: 'WR-2026.04.22-01',
-      uavClass: '固定翼',
-      hitNoFlyZone: true,
-      canApprove: false,
-      affectedSegment: '中段 8.5 km',
+      reason: '沿线中段命中气象禁飞区，当前任务审核不通过。',
       conflictGrid: 'GRID-HZ-04-066',
       conflictTimeRange: '2026-04-22 16:00 - 17:00',
-      conflictLevel: '二级禁飞',
       triggerRule: '固定翼风速 > 15m/s 禁飞',
       weatherFactor: '平均风速',
       actualValue: '16.3 m/s',
@@ -293,80 +245,6 @@ export const PLANNING_TASK_DETAIL_MAP: Record<string, PlanningTaskDetail> = {
         available: true,
       },
     ],
-    approval: {
-      status: 'blocked',
-      updatedAt: '2026-04-22 09:42:10',
-    },
-  },
-  MIS000000715: {
-    taskId: 'MIS000000715',
-    taskCode: '04221715',
-    mode: '实时任务',
-    taskName: '西湖景区低空拍摄',
-    bizType: '文旅航拍',
-    userId: 'USR000001',
-    userName: 'Super',
-    uavName: 'M350',
-    uavClass: '多旋翼',
-    submitTime: '2026-04-22 08:35:19',
-    description: '执行西湖景区重点区域低空拍摄任务。',
-    routeInfo: {
-      mode: '环线航线',
-      corridor: '西湖景区环湖廊道',
-      start: '景区东门起降点',
-      end: '景区东门起降点',
-      distance: '9.6 km',
-      altitude: '100 m AGL',
-      payload: '航拍云台',
-      speed: '8 m/s',
-      startTime: '2026-04-22 17:00:00',
-      duration: '22 min',
-    },
-    routeCoords: [
-      [30.25, 120.13],
-      [30.247, 120.118],
-      [30.243, 120.11],
-      [30.239, 120.116],
-      [30.242, 120.128],
-    ],
-    weatherPrecheck: {
-      status: 'risk',
-      summary: '当前时段存在阵风波动风险，建议择优改期后再执行任务。',
-      advice: '系统未强制阻断，但不建议直接放行，优先使用推荐时段。',
-      checkedAt: '2026-04-22 08:36:45',
-      weatherDataAt: '2026-04-22 08:36:00',
-      ruleVersion: 'WR-2026.04.22-01',
-      uavClass: '多旋翼',
-      hitNoFlyZone: false,
-      canApprove: false,
-      affectedSegment: '北侧景观点附近',
-      triggerRule: '多旋翼阵风接近禁飞阈值',
-      weatherFactor: '阵风风速',
-      actualValue: '11.4 m/s',
-      thresholdValue: '12.0 m/s',
-    },
-    safeWindows: [
-      {
-        startTime: '2026-04-22 17:40',
-        endTime: '2026-04-22 18:20',
-        duration: '40 min',
-        level: '推荐',
-        reason: '阵风波动减弱，适合航拍任务执行。',
-        available: true,
-      },
-      {
-        startTime: '2026-04-22 19:00',
-        endTime: '2026-04-22 19:40',
-        duration: '40 min',
-        level: '可选',
-        reason: '气象条件相对稳定，满足多旋翼运行要求。',
-        available: true,
-      },
-    ],
-    approval: {
-      status: 'adjusting',
-      updatedAt: '2026-04-22 08:36:45',
-    },
   },
   MIS000000714: {
     taskId: 'MIS000000714',
@@ -380,6 +258,7 @@ export const PLANNING_TASK_DETAIL_MAP: Record<string, PlanningTaskDetail> = {
     uavClass: 'VTOL',
     submitTime: '2026-04-22 08:10:02',
     description: '余杭北向物流廊道常态化配送任务。',
+    reviewStatus: 'failed',
     routeInfo: {
       mode: '往返航线',
       corridor: '余杭北向物流廊道',
@@ -399,30 +278,20 @@ export const PLANNING_TASK_DETAIL_MAP: Record<string, PlanningTaskDetail> = {
       [30.332, 119.968],
       [30.325, 119.956],
     ],
-    weatherPrecheck: {
-      status: 'all_day_blocked',
-      summary: '未来 24 小时内沿线持续处于气象禁飞状态，当前任务建议直接驳回。',
-      advice: '请重新申报新的飞行日期，或等待后续气象数据刷新后再次评估。',
+    weatherCheck: {
+      status: 'blocked',
       checkedAt: '2026-04-22 08:12:00',
       weatherDataAt: '2026-04-22 08:11:00',
       ruleVersion: 'WR-2026.04.22-01',
-      uavClass: 'VTOL',
-      hitNoFlyZone: true,
-      canApprove: false,
-      affectedSegment: '全线段',
+      reason: '未来 24 小时内沿线持续处于气象禁飞状态，当前任务无法飞行。',
       conflictGrid: 'GRID-HZ-08-041',
       conflictTimeRange: '未来 24 小时',
-      conflictLevel: '一级绝对禁飞',
       triggerRule: '强降水 + 阵风联动禁飞',
       weatherFactor: '降水 / 风速',
       actualValue: '18 mm/h / 19.2 m/s',
       thresholdValue: '10 mm/h / 15.0 m/s',
     },
     safeWindows: [],
-    approval: {
-      status: 'blocked',
-      updatedAt: '2026-04-22 08:12:00',
-    },
   },
 }
 
@@ -432,9 +301,8 @@ export const PLANNING_TASK_SUMMARY_LIST: PlanningTaskSummary[] = Object.values(P
   bizType: task.bizType,
   corridorName: task.routeInfo.corridor,
   uavClass: task.uavClass,
-  planTime: task.routeInfo.startTime.slice(0, 16).replace('T', ' '),
-  weatherPrecheck: { status: task.weatherPrecheck.status },
-  approval: { status: task.approval.status },
+  planTime: task.routeInfo.startTime,
+  reviewStatus: task.reviewStatus,
 }))
 
 export const BEAM_LIST: BeamRecord[] = [
