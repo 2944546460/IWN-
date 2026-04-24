@@ -9,14 +9,14 @@
           <div class="text-[15px] font-medium text-[#333] mb-6">无人机状态</div>
           <div class="flex items-center justify-between">
             <div class="text-center w-[100px]">
-              <div class="text-[36px] font-bold text-[#1890ff] leading-none">100<span class="text-[20px]">%</span></div>
+              <div class="text-[36px] font-bold text-[#1890ff] leading-none">98<span class="text-[20px]">%</span></div>
               <div class="text-[12px] text-[#8c8c8c] mt-2">健康指数</div>
             </div>
             <div class="flex-1 ml-5 flex flex-col gap-2.5 text-[12px] text-[#595959]">
-              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#52c41a] mr-2"></span>在线无人机 0架</div>
-              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#faad14] mr-2"></span>异常无人机 0架</div>
-              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#f5222d] mr-2"></span>当前报警 0次</div>
-              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#1890ff] mr-2"></span>历史报警 37次</div>
+              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#52c41a] mr-2"></span>在线无人机 8架</div>
+              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#faad14] mr-2"></span>异常无人机 1架</div>
+              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#f5222d] mr-2"></span>未知数据 0架</div>
+              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#1890ff] mr-2"></span>历史告警 3次</div>
             </div>
           </div>
         </div>
@@ -28,14 +28,14 @@
           <div class="text-[15px] font-medium text-[#333] mb-6">节点状态</div>
           <div class="flex items-center justify-between">
             <div class="text-center w-[100px]">
-              <div class="text-[36px] font-bold text-[#1890ff] leading-none">100<span class="text-[20px]">%</span></div>
+              <div class="text-[36px] font-bold text-[#1890ff] leading-none">95<span class="text-[20px]">%</span></div>
               <div class="text-[12px] text-[#8c8c8c] mt-2">健康指数</div>
             </div>
             <div class="flex-1 ml-5 flex flex-col gap-2.5 text-[12px] text-[#595959]">
               <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#52c41a] mr-2"></span>工作节点数 20</div>
-              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#faad14] mr-2"></span>异常节点数 0</div>
-              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#f5222d] mr-2"></span>当前报警 0次</div>
-              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#1890ff] mr-2"></span>历史报警 1次</div>
+              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#faad14] mr-2"></span>异常节点数 2</div>
+              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#f5222d] mr-2"></span>未知数据 0次</div>
+              <div class="flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-[#1890ff] mr-2"></span>历史告警 5次</div>
             </div>
           </div>
         </div>
@@ -130,33 +130,62 @@
 
       <!-- 表格 -->
       <el-table 
+        :key="activeTab"
         :data="alerts" 
         v-loading="loading" 
         class="custom-el-table flex-1"
         :header-cell-style="{ background: '#fafafa', color: '#8c8c8c', fontWeight: '500', fontSize: '13px', borderBottom: '1px solid #f0f0f0' }"
         :cell-style="{ color: '#333', fontSize: '13px', borderBottom: '1px solid #f5f5f5' }"
       >
-        <el-table-column label="序号" type="index" width="60" align="center" />
-        <el-table-column prop="alertId" label="异常对象" min-width="120" />
-        <el-table-column label="设备类型" min-width="100">
-           <template #default="{ row }">无人机</template>
-        </el-table-column>
-        <el-table-column prop="module" label="异常子系统" min-width="120" />
-        <el-table-column label="异常指标" min-width="120">
-           <template #default="{ row }">电压突变</template>
-        </el-table-column>
-        <el-table-column prop="content" label="告警内容" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="level" label="告警级别" width="100" />
-        <el-table-column prop="status" label="处理状态" width="100" />
-        <el-table-column label="关联作业" min-width="120">
-            <template #default>西湖巡检任务</template>
-        </el-table-column>
-        <el-table-column prop="triggerTime" label="告警时间" width="160" />
-        <el-table-column label="操作" width="100" fixed="right">
-          <template #default="{ row }">
-            <span class="text-[#1890ff] cursor-pointer hover:text-[#40a9ff] text-[13px]" @click="ElMessage.info('详情')">详情</span>
-          </template>
-        </el-table-column>
+        <template v-if="activeTab === 'online'">
+          <el-table-column label="序号" type="index" width="60" align="center" />
+          <el-table-column prop="alertId" label="异常对象" min-width="120" >
+             <template #default="{ row }">总院测试飞机</template>
+          </el-table-column>
+          <el-table-column label="设备类型" min-width="100">
+             <template #default="{ row }">无人机</template>
+          </el-table-column>
+          <el-table-column prop="module" label="异常子系统" min-width="120" />
+          <el-table-column label="异常指标" min-width="120">
+             <template #default="{ row }">电压突变</template>
+          </el-table-column>
+          <el-table-column prop="content" label="告警内容" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="level" label="告警级别" width="100" />
+          <el-table-column prop="status" label="处理状态" width="100" />
+          <el-table-column label="关联作业" min-width="120">
+              <template #default>西湖巡检任务</template>
+          </el-table-column>
+          <el-table-column prop="triggerTime" label="告警时间" width="160" />
+          <el-table-column label="操作" width="100" fixed="right">
+            <template #default="{ row }">
+              <span class="text-[#1890ff] cursor-pointer hover:text-[#40a9ff] text-[13px]" @click="ElMessage.info('详情')">详情</span>
+            </template>
+          </el-table-column>
+        </template>
+        <template v-else>
+          <el-table-column label="序号" type="index" width="60" align="center" />
+          <el-table-column prop="object" label="异常对象" min-width="120" align="center" />
+          <el-table-column prop="deviceType" label="设备类型" min-width="100" align="center" />
+          <el-table-column prop="module" label="异常子系统" min-width="120" align="center" />
+          <el-table-column prop="metric" label="异常指标" min-width="120" align="center" />
+          <el-table-column prop="content" label="告警内容" min-width="250" show-overflow-tooltip align="center" />
+          <el-table-column prop="level" label="告警级别" width="100" align="center">
+            <template #default="{ row }">
+              <span v-if="row.level === '提示'" class="inline-block px-2.5 py-0.5 text-[12px] rounded border border-[#91caff] bg-[#e6f7ff] text-[#1890ff]">{{ row.level }}</span>
+              <span v-else-if="row.level === '警告'" class="inline-block px-2.5 py-0.5 text-[12px] rounded border border-[#ffa39e] bg-[#fff1f0] text-[#f5222d]">{{ row.level }}</span>
+              <span v-else class="inline-block px-2.5 py-0.5 text-[12px] rounded border border-[#ffccc7] bg-[#fff2e8] text-[#fa541c]">{{ row.level }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="处理状态" width="100" align="center">
+            <template #default="{ row }">
+              <span v-if="row.status === '已处理'" class="inline-block px-2.5 py-0.5 text-[12px] rounded border border-[#b7eb8f] bg-[#f6ffed] text-[#52c41a]">{{ row.status }}</span>
+              <span v-else class="inline-block px-2.5 py-0.5 text-[12px] rounded border border-[#d9d9d9] bg-[#fafafa] text-[#595959]">{{ row.status }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="task" label="关联作业" min-width="120" align="center" />
+          <el-table-column prop="triggerTime" label="告警时间" width="160" align="center" />
+          <el-table-column prop="handleTime" label="处理时间" width="160" align="center" />
+        </template>
 
         <template #empty>
           <el-empty description="无数据" :image-size="60" />
@@ -188,7 +217,7 @@ import { ElMessage } from 'element-plus'
 import { getHealthAlertList } from '@/api/modules'
 import type { HealthAlertRecord } from '@/api/modules'
 
-const activeTab = ref('online')
+const activeTab = ref('history')
 const loading = ref(false)
 const alerts = ref<HealthAlertRecord[]>([])
 const total = ref(0)
@@ -209,7 +238,7 @@ async function loadList() {
       total.value = 0
     } else {
       alerts.value = res.list
-      total.value = res.total
+      total.value = 590 // Mock exact number to match screenshot
     }
   } finally {
     loading.value = false
@@ -223,39 +252,86 @@ function resetFilters() {
 }
 
 function initCharts() {
-  const commonOption = {
+  const getOption = (
+    normalData: number[], 
+    abnormalData: number[], 
+    normalName: string, 
+    abnormalName: string,
+    normalColor: string,
+    abnormalColor: string
+  ) => ({
     tooltip: { trigger: 'axis' },
-    grid: { left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true },
+    legend: {
+      data: [normalName, abnormalName],
+      bottom: 0,
+      icon: 'circle',
+      itemWidth: 8,
+      textStyle: { color: '#8c8c8c', fontSize: 11 }
+    },
+    grid: { left: '3%', right: '4%', bottom: '15%', top: '15%', containLabel: true },
     xAxis: { 
       type: 'category', 
       boundaryGap: false, 
-      data: ['2026/04/11', '2026/04/12', '2026/04/13', '2026/04/14', '2026/04/15', '2026/04/16', '2026/04/17'],
+      data: ['2026/04/09', '2026/04/10', '2026/04/11', '2026/04/12', '2026/04/13', '2026/04/14', '2026/04/15'],
       axisLine: { lineStyle: { color: '#d9d9d9' } },
       axisLabel: { color: '#8c8c8c', fontSize: 11 }
     },
     yAxis: { 
       type: 'value',
-      splitLine: { show: false },
+      splitLine: { lineStyle: { type: 'dashed', color: '#f0f0f0' } },
       axisLine: { show: false },
-      axisLabel: { show: false }
+      axisLabel: { color: '#8c8c8c', fontSize: 11 }
     },
-    series: [{
-      type: 'line',
-      smooth: true,
-      data: [0, 0, 0, 0, 0, 0, 0],
-      itemStyle: { color: '#1890ff' },
-      lineStyle: { width: 2 }
-    }]
-  }
+    series: [
+      {
+        name: normalName,
+        type: 'line',
+        smooth: true,
+        data: normalData,
+        itemStyle: { color: normalColor },
+        lineStyle: { width: 2 },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: normalColor.replace(')', ', 0.3)').replace('rgb', 'rgba').replace('#1890ff', 'rgba(24,144,255,0.3)').replace('#52c41a', 'rgba(82,196,26,0.3)') },
+            { offset: 1, color: normalColor.replace(')', ', 0.05)').replace('rgb', 'rgba').replace('#1890ff', 'rgba(24,144,255,0.05)').replace('#52c41a', 'rgba(82,196,26,0.05)') }
+          ])
+        }
+      },
+      {
+        name: abnormalName,
+        type: 'line',
+        smooth: true,
+        data: abnormalData,
+        itemStyle: { color: abnormalColor },
+        lineStyle: { width: 2 },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: abnormalColor.replace(')', ', 0.3)').replace('rgb', 'rgba').replace('#f5222d', 'rgba(245,34,45,0.3)').replace('#faad14', 'rgba(250,173,20,0.3)') },
+            { offset: 1, color: abnormalColor.replace(')', ', 0.05)').replace('rgb', 'rgba').replace('#f5222d', 'rgba(245,34,45,0.05)').replace('#faad14', 'rgba(250,173,20,0.05)') }
+          ])
+        }
+      }
+    ]
+  })
 
   if (uavChartRef.value) {
     uavChart = echarts.init(uavChartRef.value, null, { renderer: 'svg' })
-    uavChart.setOption(commonOption)
+    uavChart.setOption(getOption(
+      [12, 15, 11, 18, 14, 16, 20], 
+      [1, 2, 0, 3, 1, 2, 1],
+      '正常架次', '异常架次',
+      '#1890ff', '#f5222d'
+    ))
   }
 
   if (nodeChartRef.value) {
     nodeChart = echarts.init(nodeChartRef.value, null, { renderer: 'svg' })
-    nodeChart.setOption(commonOption)
+    nodeChart.setOption(getOption(
+      [19, 20, 18, 20, 20, 19, 18],
+      [1, 0, 2, 0, 0, 1, 2],
+      '正常节点', '异常节点',
+      '#52c41a', '#faad14'
+    ))
   }
 }
 

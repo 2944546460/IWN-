@@ -120,8 +120,8 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import 'leaflet/dist/leaflet.css'
+import { useRoute, useRouter } from 'vue-router'
 import * as L from 'leaflet'
 import { getPlanningTaskDetail, type PlanningTaskDetail } from '@/api/modules'
 
